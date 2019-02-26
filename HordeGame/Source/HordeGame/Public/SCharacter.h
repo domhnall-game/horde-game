@@ -6,6 +6,9 @@
 #include "GameFramework/Character.h"
 #include "SCharacter.generated.h"
 
+class UCameraComponent;
+class USpringArmComponent;
+
 UCLASS()
 class HORDEGAME_API ASCharacter : public ACharacter
 {
@@ -21,6 +24,12 @@ protected:
 
 	void MoveForward(float Value);
 	void MoveRight(float Value);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UCameraComponent* CameraComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USpringArmComponent* SpringArmComponent;
 
 public:	
 	// Called every frame
