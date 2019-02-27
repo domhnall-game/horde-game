@@ -5,6 +5,8 @@
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 
 
@@ -15,6 +17,7 @@ ASWeapon::ASWeapon()
 	PrimaryActorTick.bCanEverTick = true;
 
 	MuzzleSocketName = "MuzzleSocket";
+	TracerTargetName = "BeamEnd";
 
 	MeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComponent"));
 	RootComponent = MeshComponent;
@@ -47,8 +50,9 @@ void ASWeapon::Fire()
 
 		//Trace the world from pawn eyes to crosshair location (center screen)
 		FHitResult Hit;
+		bool bHitRegistered = GetWorld()->LineTraceSingleByChannel(Hit, OwnerEyeLocation, LineTraceEnd, ECC_Visibility, QueryParams);
 
-		if (GetWorld()->LineTraceSingleByChannel(Hit, OwnerEyeLocation, LineTraceEnd, ECC_Visibility, QueryParams)) {
+		if (bHitRegistered) {
 			//The hitscan found a blocking object, so process damage
 			AActor* HitActor = Hit.GetActor();
 
@@ -65,6 +69,22 @@ void ASWeapon::Fire()
 
 		//Draw a debug line for the hitscan
 		DrawDebugLine(GetWorld(), OwnerEyeLocation, LineTraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
+
+		if (ensure(TracerEffect)) {
+			FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
+			UParticleSystemComponent* TracerParticle = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TracerEffect, MuzzleLocation);
+			if (TracerParticle) {
+				//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
+				FVector ParticleEndVector;
+				if (bHitRegistered) {
+					ParticleEndVector = Hit.ImpactPoint;
+				} else {
+					ParticleEndVector = LineTraceEnd;
+				}
+				//Target name comes from the tracer particle itself, under Target->ParameterName
+				TracerParticle->SetVectorParameter(TracerTargetName, ParticleEndVector);
+			}
+		}
 	}
 }
 
