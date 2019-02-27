@@ -3,6 +3,7 @@
 #include "SWeapon.h"
 
 #include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 
 
@@ -41,6 +42,14 @@ void ASWeapon::Fire()
 
 		if (GetWorld()->LineTraceSingleByChannel(Hit, OwnerEyeLocation, LineTraceEnd, ECC_Visibility, QueryParams)) {
 			//The hitscan found a blocking object, so process damage
+			AActor* HitActor = Hit.GetActor();
+
+			float Damage = 20.0f;
+			FVector HitFromDirection = OwnerEyeRotation.Vector();
+			AController* HitInstigatorController = Owner->GetInstigatorController();
+			AActor* DamageCauser = this;
+			UGameplayStatics::ApplyPointDamage(HitActor, Damage, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
+
 		}
 
 		//Draw a debug line for the hitscan

@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "SWeapon.generated.h"
 
+class UDamageType;
+
 UCLASS()
 class HORDEGAME_API ASWeapon : public AActor
 {
@@ -25,6 +27,8 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void Fire();
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	TSubclassOf<UDamageType> DamageType;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
