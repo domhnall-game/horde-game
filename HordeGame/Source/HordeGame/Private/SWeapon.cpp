@@ -4,6 +4,7 @@
 
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
 #include "Engine/World.h"
 
 
@@ -13,12 +14,19 @@ ASWeapon::ASWeapon()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	MuzzleSocketName = "MuzzleSocket";
+
 	MeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComponent"));
 	RootComponent = MeshComponent;
 }
 
 void ASWeapon::Fire()
 {
+	//Play the muzzle flash
+	if (ensure(MuzzleEffect)) {
+		UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComponent, MuzzleSocketName);
+	}
+
 	AActor* Owner = GetOwner();
 
 	if (ensure(Owner)) {
@@ -50,6 +58,9 @@ void ASWeapon::Fire()
 			AActor* DamageCauser = this;
 			UGameplayStatics::ApplyPointDamage(HitActor, Damage, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
 
+			if (ensure(ImpactEffect)) {
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
+			}
 		}
 
 		//Draw a debug line for the hitscan
