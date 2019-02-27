@@ -68,7 +68,7 @@ void ASWeapon::Fire()
 		}
 
 		//Draw a debug line for the hitscan
-		DrawDebugLine(GetWorld(), OwnerEyeLocation, LineTraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
+		//DrawDebugLine(GetWorld(), OwnerEyeLocation, LineTraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
 
 		if (ensure(TracerEffect)) {
 			FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
