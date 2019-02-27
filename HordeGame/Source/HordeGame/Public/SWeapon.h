@@ -25,7 +25,7 @@ protected:
 	USkeletalMeshComponent* MeshComponent;
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	void Fire();
+	virtual void Fire();
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TSubclassOf<UDamageType> DamageType;
@@ -46,7 +46,7 @@ protected:
 	UParticleSystem* TracerEffect;
 public:	
 	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	//virtual void Tick(float DeltaTime) override;
 
 	
 	
