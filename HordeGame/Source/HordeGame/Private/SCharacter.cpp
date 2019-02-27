@@ -74,3 +74,12 @@ void ASCharacter::EndCrouch()
 	UnCrouch();
 }
 
+FVector ASCharacter::GetPawnViewLocation() const
+{
+	if (ensure(CameraComponent)) {
+		return CameraComponent->GetComponentLocation();
+	}
+
+	return Super::GetPawnViewLocation();
+}
+

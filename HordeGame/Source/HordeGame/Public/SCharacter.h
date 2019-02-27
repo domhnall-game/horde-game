@@ -41,6 +41,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	
+	//Override of Pawn's GetPawnViewLocation function; base version uses pawn eyes, but we want to use the camera
+	virtual FVector GetPawnViewLocation() const override;
 	
 };
