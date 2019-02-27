@@ -41,6 +41,7 @@ void ASLauncherProjectile::BeginPlay()
 	Super::BeginPlay();
 
 	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ASLauncherProjectile::OnOverlapBegin);	// set up a notification for when this component hits something blocking
+	//CollisionComponent->OnComponentHit.AddDynamic(this, &ASLauncherProjectile::OnHit);	// set up a notification for when this component hits something blocking
 	GetWorldTimerManager().SetTimer(TimerHandle_ExplosionDelay, this, &ASLauncherProjectile::Explode, 1.0f);
 }
 
@@ -63,3 +64,11 @@ void ASLauncherProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, A
 
 	Explode();
 }
+/*
+void ASLauncherProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (OtherActor == this) { return; }
+
+	Explode();
+}
+*/
