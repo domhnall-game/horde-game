@@ -9,6 +9,8 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 
+static int32 DebugWeaponDrawing = 0;
+FAutoConsoleVariableRef CVarDebugWeaponDrawing(TEXT("HORDE.DebugWeapons"), DebugWeaponDrawing, TEXT("Draw debug lines for weapon hits"), ECVF_Cheat);
 
 // Sets default values
 ASWeapon::ASWeapon()
@@ -68,7 +70,9 @@ void ASWeapon::Fire()
 		}
 
 		//Draw a debug line for the hitscan
-		//DrawDebugLine(GetWorld(), OwnerEyeLocation, LineTraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
+		if (DebugWeaponDrawing) {
+			DrawDebugLine(GetWorld(), OwnerEyeLocation, LineTraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
+		}
 
 		if (ensure(TracerEffect)) {
 			FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
@@ -89,11 +93,13 @@ void ASWeapon::Fire()
 }
 
 // Called when the game starts or when spawned
+/*
 void ASWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
+*/
 
 // Called every frame
 /*
