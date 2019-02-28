@@ -15,14 +15,19 @@ class HORDEGAME_API ASLauncher : public ASWeapon
 	
 public:
 	ASLauncher();
+
+	virtual void BeginPlay() override;
 	
 protected:
 	// Called when the game starts or when spawned
 	//virtual void BeginPlay() override;
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	virtual void Fire() override;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile")
 	TSubclassOf<ASLauncherProjectile> ProjectileClass;
+
+public:
+	virtual void StartFire() override;
+	virtual void StopFire() override;
 };

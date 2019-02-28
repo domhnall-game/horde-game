@@ -5,6 +5,7 @@
 #include "SLauncherProjectile.h"
 
 #include "Components/SkeletalMeshComponent.h"
+#include "TimerManager.h"
 
 // Sets default values
 ASLauncher::ASLauncher()
@@ -13,6 +14,13 @@ ASLauncher::ASLauncher()
 	PrimaryActorTick.bCanEverTick = false;
 
 	MuzzleSocketName = "ProjectileLaunchPoint";
+	AutoFireDelay = 1.0f;
+}
+
+void ASLauncher::BeginPlay()
+{
+	Super::BeginPlay();
+	LastFireTime = -1000.f;
 }
 
 void ASLauncher::Fire()
@@ -35,6 +43,20 @@ void ASLauncher::Fire()
 		// spawn the projectile at the muzzle
 		ASLauncherProjectile* Projectile = GetWorld()->SpawnActor<ASLauncherProjectile>(ProjectileClass, MuzzleLocation, OwnerEyeRotation, ActorSpawnParams);
 	}
+
+	LastFireTime = GetWorld()->TimeSeconds;
+}
+
+void ASLauncher::StartFire()
+{
+	//We don't want the gun to be able to fire faster just because the player can click faster than the autofire
+	float FirstDelay = FMath::Max(LastFireTime + AutoFireDelay - GetWorld()->TimeSeconds, 0.f);
+	GetWorldTimerManager().SetTimer(TimerHandle_AutoFireDelay, this, &ASLauncher::Fire, AutoFireDelay, true, FirstDelay);
+}
+
+void ASLauncher::StopFire()
+{
+	GetWorldTimerManager().ClearTimer(TimerHandle_AutoFireDelay);
 }
 /*
 void ASLauncher::BeginPlay()

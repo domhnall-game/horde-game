@@ -37,11 +37,23 @@ void ASCharacter::BeginPlay()
 	//Spawn a default weapon
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[0].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-	if (CurrentWeapon) {
-		CurrentWeapon->SetOwner(this);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+	if (WeaponList.Num() > 0) {
+		for (int i = 0; i < WeaponList.Num(); i++) {
+			ASWeapon* Weapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[i].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+			Weapon->SetOwner(this);
+			Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+			Weapon->SetActorHiddenInGame(true);
+			EquippedWeapons.Add(Weapon);
+		}
+		CurrentWeapon = EquippedWeapons[0];
+		CurrentWeapon->SetActorHiddenInGame(false);
 	}
+
+	//CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[0].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	//if (CurrentWeapon) {
+	//	CurrentWeapon->SetOwner(this);
+	//	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+	//}
 }
 
 // Called every frame
@@ -72,7 +84,8 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("SwitchToRifle", IE_Pressed, this, &ASCharacter::SwitchToRifle);
 	PlayerInputComponent->BindAction("SwitchToLauncher", IE_Pressed, this, &ASCharacter::SwitchToLauncher);
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ASCharacter::Fire);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ASCharacter::StartFire);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ASCharacter::StopFire);
 
 }
 
@@ -113,15 +126,23 @@ void ASCharacter::Aim(float DeltaTime)
 	CameraComponent->SetFieldOfView(NewFOV);
 }
 
-void ASCharacter::Fire()
+void ASCharacter::StartFire()
 {
 	if (CurrentWeapon) {
-		CurrentWeapon->Fire();
+		CurrentWeapon->StartFire();
+	}
+}
+
+void ASCharacter::StopFire()
+{
+	if (CurrentWeapon) {
+		CurrentWeapon->StopFire();
 	}
 }
 
 void ASCharacter::SwitchToRifle()
 {
+	/*
 	CurrentWeapon->Destroy();
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -130,10 +151,16 @@ void ASCharacter::SwitchToRifle()
 		CurrentWeapon->SetOwner(this);
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
 	}
+	*/
+	StopFire();
+	CurrentWeapon->SetActorHiddenInGame(true);
+	CurrentWeapon = EquippedWeapons[0];
+	CurrentWeapon->SetActorHiddenInGame(false);
 }
 
 void ASCharacter::SwitchToLauncher()
 {
+	/*
 	CurrentWeapon->Destroy();
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -142,6 +169,11 @@ void ASCharacter::SwitchToLauncher()
 		CurrentWeapon->SetOwner(this);
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
 	}
+	*/
+	StopFire();
+	CurrentWeapon->SetActorHiddenInGame(true);
+	CurrentWeapon = EquippedWeapons[1];
+	CurrentWeapon->SetActorHiddenInGame(false);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const

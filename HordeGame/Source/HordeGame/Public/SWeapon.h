@@ -17,9 +17,13 @@ public:
 	// Sets default values for this actor's properties
 	ASWeapon();
 
+	virtual void BeginPlay() override;
+
 protected:
 	// Called when the game starts or when spawned
 	//virtual void BeginPlay() override;
+
+	virtual void Fire();
 
 	void PlayFireEffects(FVector ParticleEndVector);
 
@@ -51,14 +55,22 @@ protected:
 	TSubclassOf<UCameraShake> FireCamShake;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	float BaseDamage = 20.f;
+	float BaseDamage;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	float HeadshotMultiplier = 1.f;
+	float HeadshotMultiplier;
+	
+	FTimerHandle TimerHandle_AutoFireDelay;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float AutoFireDelay;
+
+	float LastFireTime;
 public:	
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	virtual void Fire();
+	virtual void StartFire();
+
+	virtual void StopFire();
 };

@@ -10,6 +10,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "TimerManager.h"
 #include "Engine/World.h"
 
 static int32 DebugWeaponDrawing = 0;
@@ -26,6 +27,16 @@ ASWeapon::ASWeapon()
 
 	MeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComponent"));
 	RootComponent = MeshComponent;
+
+	BaseDamage = 20.f;
+	HeadshotMultiplier = 1.f;
+	AutoFireDelay = 0.2f;
+}
+
+void ASWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+	LastFireTime = -1000.f;
 }
 
 void ASWeapon::Fire()
@@ -93,7 +104,21 @@ void ASWeapon::Fire()
 
 		//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
 		PlayFireEffects(bHitRegistered ? Hit.ImpactPoint : LineTraceEnd);
+
+		LastFireTime = GetWorld()->TimeSeconds;
 	}
+}
+
+void ASWeapon::StartFire()
+{
+	//We don't want the gun to be able to fire faster just because the player can click faster than the autofire
+	float FirstDelay = FMath::Max(LastFireTime + AutoFireDelay - GetWorld()->TimeSeconds, 0.f);
+	GetWorldTimerManager().SetTimer(TimerHandle_AutoFireDelay, this, &ASWeapon::Fire, AutoFireDelay, true, FirstDelay);
+}
+
+void ASWeapon::StopFire()
+{
+	GetWorldTimerManager().ClearTimer(TimerHandle_AutoFireDelay);
 }
 
 void ASWeapon::PlayFireEffects(FVector ParticleEndVector)

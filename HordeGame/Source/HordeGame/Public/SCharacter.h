@@ -32,7 +32,8 @@ protected:
 	void StartAim();
 	void EndAim();
 	void Aim(float DeltaTime);
-	void Fire();
+	void StartFire();
+	void StopFire();
 	void SwitchToRifle();
 	void SwitchToLauncher();
 
@@ -54,6 +55,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
 	TArray<TSubclassOf<ASWeapon>> WeaponList;
 
+	TArray<ASWeapon*> EquippedWeapons;
 	ASWeapon* CurrentWeapon;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
