@@ -52,7 +52,7 @@ void ASWeapon::Fire()
 
 		//Trace the world from pawn eyes to crosshair location (center screen)
 		FHitResult Hit;
-		bool bHitRegistered = GetWorld()->LineTraceSingleByChannel(Hit, OwnerEyeLocation, LineTraceEnd, ECC_Visibility, QueryParams);
+		bool bHitRegistered = GetWorld()->LineTraceSingleByChannel(Hit, OwnerEyeLocation, LineTraceEnd, COLLISION_WEAPON, QueryParams);
 
 		if (bHitRegistered) {
 			//The hitscan found a blocking object, so process damage
