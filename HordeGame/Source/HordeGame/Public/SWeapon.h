@@ -35,16 +35,19 @@ protected:
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FName TracerTargetName;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FX")
 	UParticleSystem* MuzzleEffect;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
-	UParticleSystem* ImpactEffect;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FX")
+	UParticleSystem* DefaultImpactEffect;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FX")
+	UParticleSystem* FleshImpactEffect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FX")
 	UParticleSystem* TracerEffect;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	UPROPERTY(EditDefaultsOnly, Category = "FX")
 	TSubclassOf<UCameraShake> FireCamShake;
 public:	
 	// Called every frame

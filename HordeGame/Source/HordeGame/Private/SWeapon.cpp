@@ -2,10 +2,13 @@
 
 #include "SWeapon.h"
 
+#include "HordeGame.h"
+
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 
@@ -44,6 +47,8 @@ void ASWeapon::Fire()
 		QueryParams.AddIgnoredActor(this);
 		//When set to true, it provides details based on exact part of the mesh hit, not just the collision box
 		QueryParams.bTraceComplex = true;
+		//If this is not set to true, we do not get the physical material of the part of the mesh that was hit
+		QueryParams.bReturnPhysicalMaterial = true;
 
 		//Trace the world from pawn eyes to crosshair location (center screen)
 		FHitResult Hit;
@@ -59,8 +64,21 @@ void ASWeapon::Fire()
 			AActor* DamageCauser = this;
 			UGameplayStatics::ApplyPointDamage(HitActor, Damage, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
 
-			if (ensure(ImpactEffect)) {
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
+			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+			UParticleSystem* SelectedEffect = nullptr;
+
+			switch (SurfaceType) {
+				case SURFACE_FLESH_DEFAULT:
+				case SURFACE_FLESH_VULN:
+					SelectedEffect = FleshImpactEffect;
+					break;
+				default:
+					SelectedEffect = DefaultImpactEffect;
+					break;
+			}
+
+			if (ensure(SelectedEffect)) {
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
 			}
 		}
 
