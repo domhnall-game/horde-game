@@ -2,9 +2,12 @@
 
 #include "SCharacter.h"
 
+#include "SWeapon.h"
+
 #include "Camera/CameraComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Engine/World.h"
 
@@ -30,6 +33,15 @@ void ASCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	DefaultFOV = CameraComponent->FieldOfView;
+
+	//Spawn a default weapon
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[0].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	if (CurrentWeapon) {
+		CurrentWeapon->SetOwner(this);
+		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+	}
 }
 
 // Called every frame
@@ -57,6 +69,10 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ASCharacter::StartAim);
 	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ASCharacter::EndAim);
+
+	PlayerInputComponent->BindAction("SwitchToRifle", IE_Pressed, this, &ASCharacter::SwitchToRifle);
+	PlayerInputComponent->BindAction("SwitchToLauncher", IE_Pressed, this, &ASCharacter::SwitchToLauncher);
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ASCharacter::Fire);
 
 }
 
@@ -95,6 +111,37 @@ void ASCharacter::Aim(float DeltaTime)
 	float TargetFOV = bIsAiming ? AimDownSightsFOV : DefaultFOV;
 	float NewFOV = FMath::FInterpTo(CameraComponent->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
 	CameraComponent->SetFieldOfView(NewFOV);
+}
+
+void ASCharacter::Fire()
+{
+	if (CurrentWeapon) {
+		CurrentWeapon->Fire();
+	}
+}
+
+void ASCharacter::SwitchToRifle()
+{
+	CurrentWeapon->Destroy();
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[0].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	if (CurrentWeapon) {
+		CurrentWeapon->SetOwner(this);
+		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+	}
+}
+
+void ASCharacter::SwitchToLauncher()
+{
+	CurrentWeapon->Destroy();
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[1].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	if (CurrentWeapon) {
+		CurrentWeapon->SetOwner(this);
+		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+	}
 }
 
 FVector ASCharacter::GetPawnViewLocation() const

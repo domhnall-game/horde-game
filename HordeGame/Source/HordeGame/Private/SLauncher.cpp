@@ -36,8 +36,9 @@ void ASLauncher::Fire()
 		ASLauncherProjectile* Projectile = GetWorld()->SpawnActor<ASLauncherProjectile>(ProjectileClass, MuzzleLocation, OwnerEyeRotation, ActorSpawnParams);
 	}
 }
-
+/*
 void ASLauncher::BeginPlay()
 {
 	Super::BeginPlay();
 }
+*/

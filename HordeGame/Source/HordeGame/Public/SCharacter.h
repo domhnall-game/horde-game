@@ -8,6 +8,7 @@
 
 class UCameraComponent;
 class USpringArmComponent;
+class ASWeapon;
 
 UCLASS()
 class HORDEGAME_API ASCharacter : public ACharacter
@@ -31,6 +32,9 @@ protected:
 	void StartAim();
 	void EndAim();
 	void Aim(float DeltaTime);
+	void Fire();
+	void SwitchToRifle();
+	void SwitchToLauncher();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UCameraComponent* CameraComponent;
@@ -47,6 +51,13 @@ protected:
 	float AimDownSightsFOV = 60.f;
 	float DefaultFOV;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	TArray<TSubclassOf<ASWeapon>> WeaponList;
+
+	ASWeapon* CurrentWeapon;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
+	FName WeaponAttachSocketName = "weapon_socket";
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

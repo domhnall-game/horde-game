@@ -27,11 +27,6 @@ ASWeapon::ASWeapon()
 
 void ASWeapon::Fire()
 {
-	//Play the muzzle flash
-	if (ensure(MuzzleEffect)) {
-		UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComponent, MuzzleSocketName);
-	}
-
 	AActor* Owner = GetOwner();
 
 	if (ensure(Owner)) {
@@ -74,22 +69,27 @@ void ASWeapon::Fire()
 			DrawDebugLine(GetWorld(), OwnerEyeLocation, LineTraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
 		}
 
-		if (ensure(TracerEffect)) {
-			FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
-			UParticleSystemComponent* TracerParticle = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TracerEffect, MuzzleLocation);
-			if (TracerParticle) {
-				//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
-				FVector ParticleEndVector;
-				if (bHitRegistered) {
-					ParticleEndVector = Hit.ImpactPoint;
-				} else {
-					ParticleEndVector = LineTraceEnd;
-				}
-				//Target name comes from the tracer particle itself, under Target->ParameterName
-				TracerParticle->SetVectorParameter(TracerTargetName, ParticleEndVector);
-			}
+		//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
+		PlayFireEffects(bHitRegistered ? Hit.ImpactPoint : LineTraceEnd);
+	}
+}
+
+void ASWeapon::PlayFireEffects(FVector ParticleEndVector)
+{
+	//Play the muzzle flash
+	if (ensure(MuzzleEffect)) {
+		UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComponent, MuzzleSocketName);
+	}
+
+	if (ensure(TracerEffect)) {
+		FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
+		UParticleSystemComponent* TracerParticle = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TracerEffect, MuzzleLocation);
+		if (TracerParticle) {
+			//Target name comes from the tracer particle itself, under Target->ParameterName
+			TracerParticle->SetVectorParameter(TracerTargetName, ParticleEndVector);
 		}
 	}
+
 }
 
 // Called when the game starts or when spawned
