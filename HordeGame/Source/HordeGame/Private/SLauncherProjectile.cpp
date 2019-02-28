@@ -24,6 +24,7 @@ ASLauncherProjectile::ASLauncherProjectile()
 
 	//Set up a mesh component
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetupAttachment(RootComponent);
 
 	// Use a ProjectileMovementComponent to govern this projectile's movement
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileComponent"));
@@ -32,8 +33,6 @@ ASLauncherProjectile::ASLauncherProjectile()
 	ProjectileMovement->MaxSpeed = 3000.f;
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = true;
-
-	MeshComponent->SetupAttachment(RootComponent);
 }
 
 void ASLauncherProjectile::BeginPlay()
