@@ -58,24 +58,28 @@ void ASWeapon::Fire()
 			//The hitscan found a blocking object, so process damage
 			AActor* HitActor = Hit.GetActor();
 
-			float Damage = 20.0f;
+			//Get the physical material of the part of the surface that was hit
+			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+
+			//Determine appropriate particle effect and damage from the physical material
+			UParticleSystem* SelectedEffect = nullptr;
+			float Damage = BaseDamage;
+			switch (SurfaceType) {
+			case SURFACE_FLESH_VULN:
+				Damage *= HeadshotMultiplier;
+			case SURFACE_FLESH_DEFAULT:
+				SelectedEffect = FleshImpactEffect;
+				break;
+			default:
+				SelectedEffect = DefaultImpactEffect;
+				break;
+			}
+
 			FVector HitFromDirection = OwnerEyeRotation.Vector();
 			AController* HitInstigatorController = Owner->GetInstigatorController();
 			AActor* DamageCauser = this;
 			UGameplayStatics::ApplyPointDamage(HitActor, Damage, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
 
-			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
-			UParticleSystem* SelectedEffect = nullptr;
-
-			switch (SurfaceType) {
-				case SURFACE_FLESH_DEFAULT:
-				case SURFACE_FLESH_VULN:
-					SelectedEffect = FleshImpactEffect;
-					break;
-				default:
-					SelectedEffect = DefaultImpactEffect;
-					break;
-			}
 
 			if (ensure(SelectedEffect)) {
 				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());

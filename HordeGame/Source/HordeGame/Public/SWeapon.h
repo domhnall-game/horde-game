@@ -49,6 +49,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FX")
 	TSubclassOf<UCameraShake> FireCamShake;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float BaseDamage = 20.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float HeadshotMultiplier = 1.f;
 public:	
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;
