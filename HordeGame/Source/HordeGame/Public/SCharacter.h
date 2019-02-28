@@ -28,11 +28,24 @@ protected:
 	void BeginCrouch();
 	void EndCrouch();
 
+	void StartAim();
+	void EndAim();
+	void Aim(float DeltaTime);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UCameraComponent* CameraComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USpringArmComponent* SpringArmComponent;
+
+	bool bIsAiming = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player", meta = (ClamMin = 0.1f, ClampMax = 100.f))
+	float AimInterpSpeed = 5.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	float AimDownSightsFOV = 60.f;
+	float DefaultFOV;
 
 public:	
 	// Called every frame

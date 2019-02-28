@@ -6,6 +6,7 @@
 #include "Components/InputComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Engine/World.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -28,13 +29,14 @@ void ASCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	DefaultFOV = CameraComponent->FieldOfView;
 }
 
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	Aim(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -52,6 +54,10 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &ASCharacter::EndCrouch);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ASCharacter::Jump);
+
+	PlayerInputComponent->BindAction("Aim", IE_Pressed, this, &ASCharacter::StartAim);
+	PlayerInputComponent->BindAction("Aim", IE_Released, this, &ASCharacter::EndAim);
+
 }
 
 void ASCharacter::MoveForward(float Value)
@@ -72,6 +78,23 @@ void ASCharacter::BeginCrouch()
 void ASCharacter::EndCrouch()
 {
 	UnCrouch();
+}
+
+void ASCharacter::StartAim()
+{
+	bIsAiming = true;
+}
+
+void ASCharacter::EndAim()
+{
+	bIsAiming = false;
+}
+
+void ASCharacter::Aim(float DeltaTime)
+{
+	float TargetFOV = bIsAiming ? AimDownSightsFOV : DefaultFOV;
+	float NewFOV = FMath::FInterpTo(CameraComponent->FieldOfView, TargetFOV, DeltaTime, AimInterpSpeed);
+	CameraComponent->SetFieldOfView(NewFOV);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const
