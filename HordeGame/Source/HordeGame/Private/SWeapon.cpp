@@ -31,16 +31,22 @@ ASWeapon::ASWeapon()
 	BaseDamage = 20.f;
 	HeadshotMultiplier = 1.f;
 	AutoFireDelay = 0.2f;
+
+	AmmoType = EAmmoType::AMMO_Rifle;
+	MaxLoadedAmmo = 30;
 }
 
 void ASWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 	LastFireTime = -1000.f;
+	CurrentAmmo = MaxLoadedAmmo;
 }
 
 void ASWeapon::Fire()
 {
+	if (CurrentAmmo <= 0) { return; }
+
 	AActor* Owner = GetOwner();
 
 	if (ensure(Owner)) {
@@ -98,7 +104,7 @@ void ASWeapon::Fire()
 		}
 
 		//Draw a debug line for the hitscan
-		if (DebugWeaponDrawing) {
+		if (DebugWeaponDrawing > 0) {
 			DrawDebugLine(GetWorld(), OwnerEyeLocation, LineTraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
 		}
 
@@ -107,6 +113,8 @@ void ASWeapon::Fire()
 
 		LastFireTime = GetWorld()->TimeSeconds;
 	}
+
+	CurrentAmmo--;
 }
 
 void ASWeapon::StartFire()
@@ -119,6 +127,18 @@ void ASWeapon::StartFire()
 void ASWeapon::StopFire()
 {
 	GetWorldTimerManager().ClearTimer(TimerHandle_AutoFireDelay);
+}
+
+int32 ASWeapon::Reload(int32 ReloadAmount) {
+	int32 AmmoToReload = MaxLoadedAmmo - CurrentAmmo;
+
+	if (ReloadAmount < AmmoToReload) {
+		CurrentAmmo += ReloadAmount;
+		return ReloadAmount;
+	} else {
+		CurrentAmmo += AmmoToReload;
+		return AmmoToReload;
+	}
 }
 
 void ASWeapon::PlayFireEffects(FVector ParticleEndVector)
@@ -137,12 +157,14 @@ void ASWeapon::PlayFireEffects(FVector ParticleEndVector)
 		}
 	}
 
-	//Camera shake
-	APawn* Owner = Cast<APawn>(GetOwner());
-	if (Owner) {
-		APlayerController* PlayerController = Cast<APlayerController>(Owner->GetController());
-		if (PlayerController) {
-			PlayerController->ClientPlayCameraShake(FireCamShake);
+	if (FireCamShake) {
+		//Camera shake
+		APawn* Owner = Cast<APawn>(GetOwner());
+		if (Owner) {
+			APlayerController* PlayerController = Cast<APlayerController>(Owner->GetController());
+			if (PlayerController) {
+				PlayerController->ClientPlayCameraShake(FireCamShake);
+			}
 		}
 	}
 }

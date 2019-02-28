@@ -15,17 +15,23 @@ ASLauncher::ASLauncher()
 
 	MuzzleSocketName = "ProjectileLaunchPoint";
 	AutoFireDelay = 1.0f;
+
+	AmmoType = EAmmoType::AMMO_Grenade;
+	MaxLoadedAmmo = 1;
 }
 
 void ASLauncher::BeginPlay()
 {
 	Super::BeginPlay();
 	LastFireTime = -1000.f;
+	CurrentAmmo = MaxLoadedAmmo;
 }
 
 void ASLauncher::Fire()
 {
+	if (CurrentAmmo <= 0) { return; }
 	AActor* Owner = GetOwner();
+
 	// try and fire a projectile
 	if (ensure(ProjectileClass) && ensure(Owner))
 	{
@@ -45,6 +51,8 @@ void ASLauncher::Fire()
 	}
 
 	LastFireTime = GetWorld()->TimeSeconds;
+
+	CurrentAmmo--;
 }
 
 void ASLauncher::StartFire()

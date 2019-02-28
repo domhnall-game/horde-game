@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "AmmoTypeEnum.h"
+
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "SCharacter.generated.h"
@@ -34,8 +36,10 @@ protected:
 	void Aim(float DeltaTime);
 	void StartFire();
 	void StopFire();
+	void Reload();
 	void SwitchToRifle();
 	void SwitchToLauncher();
+	void SwitchToLightningGun();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UCameraComponent* CameraComponent;
@@ -58,6 +62,17 @@ protected:
 	TArray<ASWeapon*> EquippedWeapons;
 	ASWeapon* CurrentWeapon;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = "Ammo")
+	TMap<EAmmoType, int32> MaxAmmoPerType;
+	UPROPERTY(EditDefaultsOnly, Category = "Ammo")
+	int32 MaxRifleAmmo;
+	UPROPERTY(EditDefaultsOnly, Category = "Ammo")
+	int32 MaxGrenades;
+	UPROPERTY(EditDefaultsOnly, Category = "Ammo")
+	int32 MaxLightningCharge;
+
+	TMap<EAmmoType, int32> CurrentAmmoPerType;
+
 	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
 	FName WeaponAttachSocketName = "weapon_socket";
 public:	
@@ -70,4 +85,5 @@ public:
 	//Override of Pawn's GetPawnViewLocation function; base version uses pawn eyes, but we want to use the camera
 	virtual FVector GetPawnViewLocation() const override;
 	
+	void AddAmmo(EAmmoType AmmoType, int32 AmmoAmount);
 };

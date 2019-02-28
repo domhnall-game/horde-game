@@ -25,6 +25,10 @@ ASCharacter::ASCharacter()
 	CameraComponent->SetupAttachment(SpringArmComponent);
 
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
+
+	MaxRifleAmmo = 300;
+	MaxGrenades = 10;
+	MaxLightningCharge = 1000;
 }
 
 // Called when the game starts or when spawned
@@ -33,6 +37,14 @@ void ASCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	DefaultFOV = CameraComponent->FieldOfView;
+
+	MaxAmmoPerType.Add(EAmmoType::AMMO_Rifle, MaxRifleAmmo);
+	MaxAmmoPerType.Add(EAmmoType::AMMO_Grenade, MaxGrenades);
+	MaxAmmoPerType.Add(EAmmoType::AMMO_Lightning, MaxLightningCharge);
+
+	CurrentAmmoPerType.Add(EAmmoType::AMMO_Rifle, 60);
+	CurrentAmmoPerType.Add(EAmmoType::AMMO_Grenade, 3);
+	CurrentAmmoPerType.Add(EAmmoType::AMMO_Lightning, 1000);
 
 	//Spawn a default weapon
 	FActorSpawnParameters SpawnParams;
@@ -48,6 +60,8 @@ void ASCharacter::BeginPlay()
 		CurrentWeapon = EquippedWeapons[0];
 		CurrentWeapon->SetActorHiddenInGame(false);
 	}
+
+
 
 	//CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[0].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
 	//if (CurrentWeapon) {
@@ -84,9 +98,10 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("SwitchToRifle", IE_Pressed, this, &ASCharacter::SwitchToRifle);
 	PlayerInputComponent->BindAction("SwitchToLauncher", IE_Pressed, this, &ASCharacter::SwitchToLauncher);
+	PlayerInputComponent->BindAction("SwitchToLightningGun", IE_Pressed, this, &ASCharacter::SwitchToLightningGun);
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ASCharacter::StartFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ASCharacter::StopFire);
-
+	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &ASCharacter::Reload);
 }
 
 void ASCharacter::MoveForward(float Value)
@@ -140,6 +155,17 @@ void ASCharacter::StopFire()
 	}
 }
 
+void ASCharacter::Reload()
+{
+	if (CurrentWeapon) {
+		EAmmoType CurrentWeaponAmmoType = CurrentWeapon->GetAmmoType();
+		int32 CurrentAmmo = *CurrentAmmoPerType.Find(CurrentWeaponAmmoType);
+		int32 ReloadedAmmo = CurrentWeapon->Reload(CurrentAmmo);
+		UE_LOG(LogTemp, Warning, TEXT("New ammo amount: %d"), CurrentAmmo - ReloadedAmmo);
+		CurrentAmmoPerType.Add(CurrentWeaponAmmoType, CurrentAmmo - ReloadedAmmo);
+	}
+}
+
 void ASCharacter::SwitchToRifle()
 {
 	/*
@@ -174,6 +200,32 @@ void ASCharacter::SwitchToLauncher()
 	CurrentWeapon->SetActorHiddenInGame(true);
 	CurrentWeapon = EquippedWeapons[1];
 	CurrentWeapon->SetActorHiddenInGame(false);
+}
+
+void ASCharacter::SwitchToLightningGun()
+{
+	/*
+	CurrentWeapon->Destroy();
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[1].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	if (CurrentWeapon) {
+		CurrentWeapon->SetOwner(this);
+		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+	}
+	*/
+	StopFire();
+	CurrentWeapon->SetActorHiddenInGame(true);
+	CurrentWeapon = EquippedWeapons[2];
+	CurrentWeapon->SetActorHiddenInGame(false);
+}
+
+void ASCharacter::AddAmmo(EAmmoType AmmoType, int32 AmmoAmount)
+{
+	int32 CurrentAmmoForType = *CurrentAmmoPerType.Find(AmmoType);
+	int32 MaxAmmoForType = *MaxAmmoPerType.Find(AmmoType);
+	CurrentAmmoForType = FMath::Min(CurrentAmmoForType + AmmoAmount, MaxAmmoForType);
+	CurrentAmmoPerType.Add(AmmoType, CurrentAmmoForType);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const

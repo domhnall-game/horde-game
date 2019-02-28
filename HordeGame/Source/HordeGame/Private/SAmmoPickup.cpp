@@ -1,0 +1,55 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#include "SAmmoPickup.h"
+
+#include "SCharacter.h"
+
+#include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
+
+// Sets default values
+ASAmmoPickup::ASAmmoPickup()
+{
+ 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = false;
+
+	// Use a sphere as a simple collision representation
+	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+	CollisionComponent->InitSphereRadius(5.0f);
+	CollisionComponent->SetCollisionProfileName("Projectile");
+
+	// Players can't walk on it
+	CollisionComponent->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
+	CollisionComponent->CanCharacterStepUpOn = ECB_No;
+	RootComponent = CollisionComponent;
+
+	//Set up a mesh component
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetupAttachment(RootComponent);
+}
+
+// Called when the game starts or when spawned
+void ASAmmoPickup::BeginPlay()
+{
+	Super::BeginPlay();
+
+	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ASAmmoPickup::OnOverlapBegin);	// set up a notification for when this component hits something blocking
+}
+
+// Called every frame
+void ASAmmoPickup::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+
+void ASAmmoPickup::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor) {
+		ASCharacter* Character = Cast<ASCharacter>(OtherActor);
+		if (Character) {
+			Character->AddAmmo(AmmoType, PickupAmount);
+			Destroy();
+		}
+	}
+}
