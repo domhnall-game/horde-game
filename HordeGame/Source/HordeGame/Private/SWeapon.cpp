@@ -90,6 +90,14 @@ void ASWeapon::PlayFireEffects(FVector ParticleEndVector)
 		}
 	}
 
+	//Camera shake
+	APawn* Owner = Cast<APawn>(GetOwner());
+	if (Owner) {
+		APlayerController* PlayerController = Cast<APlayerController>(Owner->GetController());
+		if (PlayerController) {
+			PlayerController->ClientPlayCameraShake(FireCamShake);
+		}
+	}
 }
 
 // Called when the game starts or when spawned
