@@ -16,6 +16,8 @@ ASLauncher::ASLauncher()
 	MuzzleSocketName = "ProjectileLaunchPoint";
 	AutoFireDelay = 1.0f;
 
+	MaxRange = 1000;
+
 	AmmoType = EAmmoType::AMMO_Grenade;
 	MaxLoadedAmmo = 1;
 }

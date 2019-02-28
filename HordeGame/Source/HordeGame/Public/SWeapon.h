@@ -78,6 +78,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	int32 MaxLoadedAmmo;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	int32 MaxRange;
 public:
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;

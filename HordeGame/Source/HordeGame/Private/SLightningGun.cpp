@@ -21,6 +21,7 @@ ASLightningGun::ASLightningGun()
 	AutoFireDelay = 0.05f;
 	BaseDamage = 1.0f;
 	HeadshotMultiplier = 1.0f;
+	MaxRange = 1500;
 
 	AmmoType = EAmmoType::AMMO_Lightning;
 	MaxLoadedAmmo = 1000;
@@ -45,7 +46,7 @@ void ASLightningGun::Fire()
 		Owner->GetActorEyesViewPoint(OwnerEyeLocation, OwnerEyeRotation);
 
 		//Create the line trace end based on the vector from the owner's eyes to a very far distance
-		FVector LineTraceEnd = OwnerEyeLocation + (OwnerEyeRotation.Vector() * 10000);
+		FVector LineTraceEnd = OwnerEyeLocation + (OwnerEyeRotation.Vector() * MaxRange);
 
 		//Set collision parameters to ignore this weapon and its owner
 		FCollisionQueryParams QueryParams;

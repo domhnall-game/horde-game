@@ -31,6 +31,7 @@ ASWeapon::ASWeapon()
 	BaseDamage = 20.f;
 	HeadshotMultiplier = 1.f;
 	AutoFireDelay = 0.2f;
+	MaxRange = 10000;
 
 	AmmoType = EAmmoType::AMMO_Rifle;
 	MaxLoadedAmmo = 30;
@@ -56,7 +57,7 @@ void ASWeapon::Fire()
 		Owner->GetActorEyesViewPoint(OwnerEyeLocation, OwnerEyeRotation);
 
 		//Create the line trace end based on the vector from the owner's eyes to a very far distance
-		FVector LineTraceEnd = OwnerEyeLocation + (OwnerEyeRotation.Vector() * 10000);
+		FVector LineTraceEnd = OwnerEyeLocation + (OwnerEyeRotation.Vector() * MaxRange);
 
 		//Set collision parameters to ignore this weapon and its owner
 		FCollisionQueryParams QueryParams;
