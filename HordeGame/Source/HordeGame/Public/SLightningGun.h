@@ -20,14 +20,29 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void Fire() override;
+	void StartDecreaseDamageMulitiplierTimer();
+	void StartIncreaseDamageMulitiplierTimer();
+	void DecreaseDamageMultiplier();
+	void IncreaseDamageMultiplier();
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	float ChargeUpTime;
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float DamageMultiplierIncreaseTime;
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float DamageMultiplierDecreaseTime;
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TArray<float> DamageMultiplierArray;
+
+	int32 CurrentDamageMultiplierIndex;
 
 	FTimerHandle TimerHandle_ChargeUp;
+	FTimerHandle TimerHandle_DecreaseDamageMultiplier;
+	FTimerHandle TimerHandle_IncreaseDamageMultiplier;
 
 public:
 	virtual void StartFire() override;
 	virtual void StopFire() override;
+
 	virtual int32 Reload(int32 ReloadAmount) override;
 };

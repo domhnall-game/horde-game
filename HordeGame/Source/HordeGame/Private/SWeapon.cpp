@@ -29,7 +29,7 @@ ASWeapon::ASWeapon()
 	RootComponent = MeshComponent;
 
 	BaseDamage = 20.f;
-	HeadshotMultiplier = 1.f;
+	DamageMultiplier = 1.f;
 	AutoFireDelay = 0.2f;
 	MaxRange = 10000;
 
@@ -84,7 +84,7 @@ void ASWeapon::Fire()
 			float Damage = BaseDamage;
 			switch (SurfaceType) {
 			case SURFACE_FLESH_VULN:
-				Damage *= HeadshotMultiplier;
+				Damage *= DamageMultiplier;
 			case SURFACE_FLESH_DEFAULT:
 				SelectedEffect = FleshImpactEffect;
 				break;

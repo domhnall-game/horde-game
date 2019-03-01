@@ -17,10 +17,18 @@ ASLightningGun::ASLightningGun()
 	PrimaryActorTick.bCanEverTick = false;
 
 	MuzzleSocketName = "ProjectileLaunchPoint";
-	ChargeUpTime = 3.0f;
+	ChargeUpTime = 3.f;
 	AutoFireDelay = 0.05f;
-	BaseDamage = 1.0f;
-	HeadshotMultiplier = 1.0f;
+	DamageMultiplierIncreaseTime = 3.f;
+	DamageMultiplierDecreaseTime = 1.f;
+
+	BaseDamage = 0.01f;
+	DamageMultiplier = 1.f;
+	DamageMultiplierArray.Add(1.f);
+	DamageMultiplierArray.Add(2.f);
+	DamageMultiplierArray.Add(4.f);
+	DamageMultiplierArray.Add(10.f);
+	DamageMultiplierArray.Add(25.f);
 	MaxRange = 1500;
 
 	AmmoType = EAmmoType::AMMO_Lightning;
@@ -31,6 +39,8 @@ void ASLightningGun::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentAmmo = MaxLoadedAmmo;
+	CurrentDamageMultiplierIndex = 0;
+	DamageMultiplier = DamageMultiplierArray[CurrentDamageMultiplierIndex];
 }
 
 void ASLightningGun::Fire()
@@ -64,7 +74,15 @@ void ASLightningGun::Fire()
 			FVector HitFromDirection = OwnerEyeRotation.Vector();
 			AController* HitInstigatorController = Owner->GetInstigatorController();
 			AActor* DamageCauser = this;
-			UGameplayStatics::ApplyPointDamage(HitActor, BaseDamage, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
+			UGameplayStatics::ApplyPointDamage(HitActor, BaseDamage * DamageMultiplier, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
+
+			if (HitActor && HitActor->bCanBeDamaged) {
+				StartIncreaseDamageMulitiplierTimer();
+			} else {
+				StartDecreaseDamageMulitiplierTimer();
+			}
+		} else {
+			StartDecreaseDamageMulitiplierTimer();
 		}
 
 		//Draw a debug line for the hitscan
@@ -75,9 +93,6 @@ void ASLightningGun::Fire()
 
 		//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
 		PlayFireEffects(bHitRegistered ? Hit.ImpactPoint : LineTraceEnd);
-
-		//FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
-		//DrawDebugLine(GetWorld(), MuzzleLocation, LineTraceEnd, FColor::Blue, false, -1.f, 0, 5.0f);
 
 		LastFireTime = GetWorld()->TimeSeconds;
 	}
@@ -92,7 +107,11 @@ void ASLightningGun::StartFire()
 
 void ASLightningGun::StopFire()
 {
+	CurrentDamageMultiplierIndex = 0;
+	DamageMultiplier = DamageMultiplierArray[CurrentDamageMultiplierIndex];
 	GetWorldTimerManager().ClearTimer(TimerHandle_AutoFireDelay);
+	GetWorldTimerManager().ClearTimer(TimerHandle_IncreaseDamageMultiplier);
+	GetWorldTimerManager().ClearTimer(TimerHandle_DecreaseDamageMultiplier);
 }
 
 int32 ASLightningGun::Reload(int32 ReloadAmount)
@@ -100,4 +119,34 @@ int32 ASLightningGun::Reload(int32 ReloadAmount)
 	//The lightning gun uses a charge pack, meaning that it uses the entire reload stack at once instead of individual rounds/grenades
 	CurrentAmmo = ReloadAmount;
 	return ReloadAmount;
+}
+
+void ASLightningGun::StartDecreaseDamageMulitiplierTimer()
+{
+	if (!GetWorldTimerManager().IsTimerActive(TimerHandle_DecreaseDamageMultiplier)) {
+		GetWorldTimerManager().ClearTimer(TimerHandle_IncreaseDamageMultiplier);
+		GetWorldTimerManager().SetTimer(TimerHandle_DecreaseDamageMultiplier, this, &ASLightningGun::DecreaseDamageMultiplier, 1.0f, false, DamageMultiplierDecreaseTime);
+	}
+}
+
+void ASLightningGun::DecreaseDamageMultiplier()
+{
+	if (CurrentDamageMultiplierIndex > 0) {
+		DamageMultiplier = DamageMultiplierArray[--CurrentDamageMultiplierIndex];
+	}
+}
+
+void ASLightningGun::StartIncreaseDamageMulitiplierTimer()
+{
+	if (!GetWorldTimerManager().IsTimerActive(TimerHandle_IncreaseDamageMultiplier)) {
+		GetWorldTimerManager().ClearTimer(TimerHandle_DecreaseDamageMultiplier);
+		GetWorldTimerManager().SetTimer(TimerHandle_IncreaseDamageMultiplier, this, &ASLightningGun::IncreaseDamageMultiplier, 1.0f, false, DamageMultiplierIncreaseTime);
+	}
+}
+
+void ASLightningGun::IncreaseDamageMultiplier()
+{
+	if (CurrentDamageMultiplierIndex < (DamageMultiplierArray.Num() - 1)) {
+		DamageMultiplier = DamageMultiplierArray[++CurrentDamageMultiplierIndex];
+	}
 }

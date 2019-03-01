@@ -61,7 +61,7 @@ protected:
 	float BaseDamage;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Damage")
-	float HeadshotMultiplier;
+	float DamageMultiplier;
 
 	FTimerHandle TimerHandle_AutoFireDelay;
 
