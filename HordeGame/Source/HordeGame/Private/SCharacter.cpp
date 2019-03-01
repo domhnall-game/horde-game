@@ -3,6 +3,7 @@
 #include "SCharacter.h"
 
 #include "HordeGame.h"
+#include "SHealthComponent.h"
 #include "SWeapon.h"
 
 #include "Camera/CameraComponent.h"
@@ -26,12 +27,16 @@ ASCharacter::ASCharacter()
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
 
+	HealthComponent = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComponent"));
+
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
 	MaxRifleAmmo = 300;
 	MaxGrenades = 10;
 	MaxLightningCharge = 1000;
+
+	bIsDead = false;
 }
 
 // Called when the game starts or when spawned
@@ -69,6 +74,8 @@ void ASCharacter::BeginPlay()
 	//	CurrentWeapon->SetOwner(this);
 	//	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
 	//}
+
+	HealthComponent->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
 }
 
 // Called every frame
@@ -247,6 +254,19 @@ void ASCharacter::SwitchToLightningGun()
 		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Lightning Gun"));
 	} else {
 		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
+	}
+}
+
+void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+{
+	//Death
+	if (Health <= 0.0f && !bIsDead) {
+		bIsDead = true;
+		GetMovementComponent()->StopMovementImmediately();
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		DetachFromControllerPendingDestroy();
+		SetLifeSpan(10.f);
 	}
 }
 

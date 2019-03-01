@@ -8,9 +8,11 @@
 #include "GameFramework/Character.h"
 #include "SCharacter.generated.h"
 
-class UCameraComponent;
-class USpringArmComponent;
 class ASWeapon;
+
+class UCameraComponent;
+class USHealthComponent;
+class USpringArmComponent;
 
 UCLASS()
 class HORDEGAME_API ASCharacter : public ACharacter
@@ -41,11 +43,17 @@ protected:
 	void SwitchToLauncher();
 	void SwitchToLightningGun();
 
+	UFUNCTION()
+	void OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UCameraComponent* CameraComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USpringArmComponent* SpringArmComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	USHealthComponent* HealthComponent;
 
 	bool bIsAiming = false;
 
@@ -77,6 +85,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Player")
 	FName WeaponAttachSocketName = "weapon_socket";
+
+	UPROPERTY(BlueprintReadOnly, Category = "Player")
+	bool bIsDead;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
