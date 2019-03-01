@@ -145,6 +145,8 @@ void ASCharacter::StartFire()
 {
 	if (CurrentWeapon && !bIsReloading) {
 		CurrentWeapon->StartFire();
+	} else if (CurrentWeapon && bIsReloading) {
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot currently fire"));
 	}
 }
 
@@ -169,9 +171,12 @@ void ASCharacter::Reload()
 
 			UAnimMontage* ReloadMontage = CurrentWeapon->GetReloadMontage();
 			if (ReloadMontage) {
+				UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Current weapon: %s, playing reload montage"), *CurrentWeapon->GetName());
 				PlayAnimMontage(ReloadMontage);
 			}
 		}
+	} else {
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is already reloading"));
 	}
 }
 
@@ -192,6 +197,9 @@ void ASCharacter::SwitchToRifle()
 		CurrentWeapon->SetActorHiddenInGame(true);
 		CurrentWeapon = EquippedWeapons[0];
 		CurrentWeapon->SetActorHiddenInGame(false);
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Rifle"));
+	} else {
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
 	}
 }
 
@@ -212,6 +220,9 @@ void ASCharacter::SwitchToLauncher()
 		CurrentWeapon->SetActorHiddenInGame(true);
 		CurrentWeapon = EquippedWeapons[1];
 		CurrentWeapon->SetActorHiddenInGame(false);
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Grenade Launcher"));
+	} else {
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
 	}
 }
 
@@ -232,6 +243,9 @@ void ASCharacter::SwitchToLightningGun()
 		CurrentWeapon->SetActorHiddenInGame(true);
 		CurrentWeapon = EquippedWeapons[2];
 		CurrentWeapon->SetActorHiddenInGame(false);
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Lightning Gun"));
+	} else {
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
 	}
 }
 
@@ -241,6 +255,14 @@ void ASCharacter::AddAmmo(EAmmoType AmmoType, int32 AmmoAmount)
 	int32 MaxAmmoForType = *MaxAmmoPerType.Find(AmmoType);
 	CurrentAmmoForType = FMath::Min(CurrentAmmoForType + AmmoAmount, MaxAmmoForType);
 	CurrentAmmoPerType.Add(AmmoType, CurrentAmmoForType);
+
+	if (AmmoType == EAmmoType::AMMO_Grenade) {
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Received %d ammo for ammo type grenade"), AmmoAmount);
+	} else if (AmmoType == EAmmoType::AMMO_Rifle) {
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Received %d ammo for ammo type rifle"), AmmoAmount);
+	} else if (AmmoType == EAmmoType::AMMO_Lightning) {
+		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Received %d ammo for ammo type lightning"), AmmoAmount);
+	}
 }
 
 FVector ASCharacter::GetPawnViewLocation() const

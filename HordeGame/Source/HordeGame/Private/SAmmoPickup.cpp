@@ -48,6 +48,14 @@ void ASAmmoPickup::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 	if (OtherActor) {
 		ASCharacter* Character = Cast<ASCharacter>(OtherActor);
 		if (Character) {
+			if (AmmoType == EAmmoType::AMMO_Grenade) {
+				UE_LOG(LogTemp, Warning, TEXT("SAmmoPickup -- Received %d ammo for ammo type grenade"), PickupAmount);
+			} else if (AmmoType == EAmmoType::AMMO_Rifle) {
+				UE_LOG(LogTemp, Warning, TEXT("SAmmoPickup -- Received %d ammo for ammo type rifle"), PickupAmount);
+			} else if (AmmoType == EAmmoType::AMMO_Lightning) {
+				UE_LOG(LogTemp, Warning, TEXT("SAmmoPickup -- Received %d ammo for ammo type lightning"), PickupAmount);
+			}
+
 			Character->AddAmmo(AmmoType, PickupAmount);
 			Destroy();
 		}

@@ -27,6 +27,7 @@ void ASLauncher::BeginPlay()
 	Super::BeginPlay();
 	LastFireTime = -1000.f;
 	CurrentAmmo = MaxLoadedAmmo;
+	UE_LOG(LogTemp, Warning, TEXT("SLauncher -- Max clip size: %d"), MaxLoadedAmmo);
 }
 
 void ASLauncher::Fire()
@@ -55,6 +56,7 @@ void ASLauncher::Fire()
 	LastFireTime = GetWorld()->TimeSeconds;
 
 	CurrentAmmo--;
+	UE_LOG(LogTemp, Warning, TEXT("SLauncher -- Ammo left in gun: %d out of %d"), CurrentAmmo, MaxLoadedAmmo);
 }
 
 void ASLauncher::StartFire()
