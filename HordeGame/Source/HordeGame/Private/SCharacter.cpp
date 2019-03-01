@@ -2,9 +2,11 @@
 
 #include "SCharacter.h"
 
+#include "HordeGame.h"
 #include "SWeapon.h"
 
 #include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -25,6 +27,7 @@ ASCharacter::ASCharacter()
 	CameraComponent->SetupAttachment(SpringArmComponent);
 
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
+	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
 	MaxRifleAmmo = 300;
 	MaxGrenades = 10;

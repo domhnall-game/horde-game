@@ -2,6 +2,7 @@
 
 #include "SHealthComponent.h"
 
+#include "GameFramework/Actor.h"
 
 // Sets default values for this component's properties
 USHealthComponent::USHealthComponent()
@@ -11,7 +12,7 @@ USHealthComponent::USHealthComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 
 	// ...
-	Health = 100.f;
+	DefaultHealth = 100.f;
 }
 
 
@@ -21,9 +22,23 @@ void USHealthComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+	AActor* Owner = GetOwner();
+	if (ensure(Owner)) {
+		Owner->OnTakeAnyDamage.AddDynamic(this, &USHealthComponent::HandleTakeAnyDamage);
+	}
+
+	Health = DefaultHealth;
 }
 
+void USHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+{
+	if (Damage <= 0.0f) { return; }
+
+	//Update health; cannot go below 0 or over DefaultHealth
+	Health = FMath::Clamp(Health - Damage, 0.0f, DefaultHealth);
+
+	UE_LOG(LogTemp, Warning, TEXT("%f damage taken by %s"), Damage, *GetOwner()->GetName());
+}
 
 // Called every frame
 /*

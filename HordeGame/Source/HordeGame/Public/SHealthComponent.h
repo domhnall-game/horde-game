@@ -20,13 +20,16 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "HealthComponent")
+	UPROPERTY(BlueprintReadOnly, Category = "HealthComponent")
 	float Health;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HealthComponent")
+	float DefaultHealth;
 
 public:	
 	// Called every frame
-	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;	
 
-		
-	
+	UFUNCTION()
+	void HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 };
