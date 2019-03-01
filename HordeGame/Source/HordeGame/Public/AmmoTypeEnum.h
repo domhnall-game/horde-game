@@ -8,5 +8,5 @@
 /**
  * 
  */
-UENUM()
+UENUM(BlueprintType)
 enum class EAmmoType : uint8 { AMMO_Rifle, AMMO_Grenade, AMMO_Lightning };

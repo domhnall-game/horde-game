@@ -143,7 +143,7 @@ void ASCharacter::Aim(float DeltaTime)
 
 void ASCharacter::StartFire()
 {
-	if (CurrentWeapon) {
+	if (CurrentWeapon && !bIsReloading) {
 		CurrentWeapon->StartFire();
 	}
 }
@@ -157,12 +157,21 @@ void ASCharacter::StopFire()
 
 void ASCharacter::Reload()
 {
-	if (CurrentWeapon) {
-		EAmmoType CurrentWeaponAmmoType = CurrentWeapon->GetAmmoType();
-		int32 CurrentAmmo = *CurrentAmmoPerType.Find(CurrentWeaponAmmoType);
-		int32 ReloadedAmmo = CurrentWeapon->Reload(CurrentAmmo);
-		UE_LOG(LogTemp, Warning, TEXT("New ammo amount: %d"), CurrentAmmo - ReloadedAmmo);
-		CurrentAmmoPerType.Add(CurrentWeaponAmmoType, CurrentAmmo - ReloadedAmmo);
+	if (!bIsReloading) {
+		bIsReloading = true;
+		StopFire();
+
+		if (CurrentWeapon) {
+			EAmmoType CurrentWeaponAmmoType = CurrentWeapon->GetAmmoType();
+			int32 CurrentAmmo = *CurrentAmmoPerType.Find(CurrentWeaponAmmoType);
+			int32 ReloadedAmmo = CurrentWeapon->Reload(CurrentAmmo);
+			CurrentAmmoPerType.Add(CurrentWeaponAmmoType, CurrentAmmo - ReloadedAmmo);
+
+			UAnimMontage* ReloadMontage = CurrentWeapon->GetReloadMontage();
+			if (ReloadMontage) {
+				PlayAnimMontage(ReloadMontage);
+			}
+		}
 	}
 }
 
@@ -178,10 +187,12 @@ void ASCharacter::SwitchToRifle()
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
 	}
 	*/
-	StopFire();
-	CurrentWeapon->SetActorHiddenInGame(true);
-	CurrentWeapon = EquippedWeapons[0];
-	CurrentWeapon->SetActorHiddenInGame(false);
+	if (!bIsReloading) {
+		StopFire();
+		CurrentWeapon->SetActorHiddenInGame(true);
+		CurrentWeapon = EquippedWeapons[0];
+		CurrentWeapon->SetActorHiddenInGame(false);
+	}
 }
 
 void ASCharacter::SwitchToLauncher()
@@ -196,10 +207,12 @@ void ASCharacter::SwitchToLauncher()
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
 	}
 	*/
-	StopFire();
-	CurrentWeapon->SetActorHiddenInGame(true);
-	CurrentWeapon = EquippedWeapons[1];
-	CurrentWeapon->SetActorHiddenInGame(false);
+	if (!bIsReloading) {
+		StopFire();
+		CurrentWeapon->SetActorHiddenInGame(true);
+		CurrentWeapon = EquippedWeapons[1];
+		CurrentWeapon->SetActorHiddenInGame(false);
+	}
 }
 
 void ASCharacter::SwitchToLightningGun()
@@ -214,10 +227,12 @@ void ASCharacter::SwitchToLightningGun()
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
 	}
 	*/
-	StopFire();
-	CurrentWeapon->SetActorHiddenInGame(true);
-	CurrentWeapon = EquippedWeapons[2];
-	CurrentWeapon->SetActorHiddenInGame(false);
+	if (!bIsReloading) {
+		StopFire();
+		CurrentWeapon->SetActorHiddenInGame(true);
+		CurrentWeapon = EquippedWeapons[2];
+		CurrentWeapon->SetActorHiddenInGame(false);
+	}
 }
 
 void ASCharacter::AddAmmo(EAmmoType AmmoType, int32 AmmoAmount)

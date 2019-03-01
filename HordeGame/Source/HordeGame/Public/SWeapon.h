@@ -8,9 +8,6 @@
 #include "GameFramework/Actor.h"
 #include "SWeapon.generated.h"
 
-//UENUM()
-//enum class EAmmoType : uint8 { RifleRound, Grenade, LightningPack };
-
 class UDamageType;
 
 UCLASS()
@@ -64,13 +61,13 @@ protected:
 	float DamageMultiplier;
 
 	FTimerHandle TimerHandle_AutoFireDelay;
-
+	
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	float AutoFireDelay;
 
 	float LastFireTime;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = "Weapon")
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	EAmmoType AmmoType;
 
 	int32 CurrentAmmo;
@@ -80,6 +77,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	int32 MaxRange;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FX")
+	UAnimMontage* ReloadMontage;
 public:
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;
@@ -90,4 +90,5 @@ public:
 
 	EAmmoType GetAmmoType() { return AmmoType; }
 	int32 GetMaxLoadedAmmo() { return MaxLoadedAmmo; }
+	UAnimMontage* GetReloadMontage() { return ReloadMontage; }
 };

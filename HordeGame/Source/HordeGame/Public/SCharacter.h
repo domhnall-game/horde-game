@@ -59,8 +59,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
 	TArray<TSubclassOf<ASWeapon>> WeaponList;
 
-	TArray<ASWeapon*> EquippedWeapons;
+	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
 	ASWeapon* CurrentWeapon;
+
+	TArray<ASWeapon*> EquippedWeapons;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Ammo")
 	TMap<EAmmoType, int32> MaxAmmoPerType;
@@ -86,4 +88,6 @@ public:
 	virtual FVector GetPawnViewLocation() const override;
 	
 	void AddAmmo(EAmmoType AmmoType, int32 AmmoAmount);
+
+	bool bIsReloading;
 };
