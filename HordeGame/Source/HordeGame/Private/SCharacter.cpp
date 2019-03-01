@@ -61,8 +61,6 @@ void ASCharacter::BeginPlay()
 		CurrentWeapon->SetActorHiddenInGame(false);
 	}
 
-
-
 	//CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[0].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
 	//if (CurrentWeapon) {
 	//	CurrentWeapon->SetOwner(this);
@@ -146,7 +144,7 @@ void ASCharacter::StartFire()
 	if (CurrentWeapon && !bIsReloading) {
 		CurrentWeapon->StartFire();
 	} else if (CurrentWeapon && bIsReloading) {
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot currently fire"));
+		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot currently fire"));
 	}
 }
 
@@ -171,12 +169,12 @@ void ASCharacter::Reload()
 
 			UAnimMontage* ReloadMontage = CurrentWeapon->GetReloadMontage();
 			if (ReloadMontage) {
-				UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Current weapon: %s, playing reload montage"), *CurrentWeapon->GetName());
+				//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Current weapon: %s, playing reload montage"), *CurrentWeapon->GetName());
 				PlayAnimMontage(ReloadMontage);
 			}
 		}
 	} else {
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is already reloading"));
+		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is already reloading"));
 	}
 }
 
@@ -197,9 +195,9 @@ void ASCharacter::SwitchToRifle()
 		CurrentWeapon->SetActorHiddenInGame(true);
 		CurrentWeapon = EquippedWeapons[0];
 		CurrentWeapon->SetActorHiddenInGame(false);
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Rifle"));
+		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Rifle"));
 	} else {
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
+		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
 	}
 }
 
@@ -220,9 +218,9 @@ void ASCharacter::SwitchToLauncher()
 		CurrentWeapon->SetActorHiddenInGame(true);
 		CurrentWeapon = EquippedWeapons[1];
 		CurrentWeapon->SetActorHiddenInGame(false);
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Grenade Launcher"));
+		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Grenade Launcher"));
 	} else {
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
+		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
 	}
 }
 
@@ -243,9 +241,9 @@ void ASCharacter::SwitchToLightningGun()
 		CurrentWeapon->SetActorHiddenInGame(true);
 		CurrentWeapon = EquippedWeapons[2];
 		CurrentWeapon->SetActorHiddenInGame(false);
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Lightning Gun"));
+		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Lightning Gun"));
 	} else {
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
+		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
 	}
 }
 
@@ -256,6 +254,7 @@ void ASCharacter::AddAmmo(EAmmoType AmmoType, int32 AmmoAmount)
 	CurrentAmmoForType = FMath::Min(CurrentAmmoForType + AmmoAmount, MaxAmmoForType);
 	CurrentAmmoPerType.Add(AmmoType, CurrentAmmoForType);
 
+	/*
 	if (AmmoType == EAmmoType::AMMO_Grenade) {
 		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Received %d ammo for ammo type grenade"), AmmoAmount);
 	} else if (AmmoType == EAmmoType::AMMO_Rifle) {
@@ -263,6 +262,7 @@ void ASCharacter::AddAmmo(EAmmoType AmmoType, int32 AmmoAmount)
 	} else if (AmmoType == EAmmoType::AMMO_Lightning) {
 		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Received %d ammo for ammo type lightning"), AmmoAmount);
 	}
+	*/
 }
 
 FVector ASCharacter::GetPawnViewLocation() const

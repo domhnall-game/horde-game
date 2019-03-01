@@ -41,7 +41,7 @@ void ASLightningGun::BeginPlay()
 	CurrentAmmo = MaxLoadedAmmo;
 	CurrentDamageMultiplierIndex = 0;
 	DamageMultiplier = DamageMultiplierArray[CurrentDamageMultiplierIndex];
-	UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Max clip size: %d"), MaxLoadedAmmo);
+	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Max clip size: %d"), MaxLoadedAmmo);
 }
 
 void ASLightningGun::Fire()
@@ -99,12 +99,12 @@ void ASLightningGun::Fire()
 	}
 
 	CurrentAmmo--;
-	UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Ammo left in gun: %d out of %d"), CurrentAmmo, MaxLoadedAmmo);
+	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Ammo left in gun: %d out of %d"), CurrentAmmo, MaxLoadedAmmo);
 }
 
 void ASLightningGun::StartFire()
 {
-	UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Needs to charge up for %f seconds before it fires"), ChargeUpTime);
+	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Needs to charge up for %f seconds before it fires"), ChargeUpTime);
 	GetWorldTimerManager().SetTimer(TimerHandle_AutoFireDelay, this, &ASLightningGun::Fire, AutoFireDelay, true, ChargeUpTime);
 }
 
@@ -115,12 +115,12 @@ void ASLightningGun::StopFire()
 	GetWorldTimerManager().ClearTimer(TimerHandle_AutoFireDelay);
 	GetWorldTimerManager().ClearTimer(TimerHandle_IncreaseDamageMultiplier);
 	GetWorldTimerManager().ClearTimer(TimerHandle_DecreaseDamageMultiplier);
-	UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun fire has stopped, resetting damage multiplier to %f"), DamageMultiplier);
+	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun fire has stopped, resetting damage multiplier to %f"), DamageMultiplier);
 }
 
 int32 ASLightningGun::Reload(int32 ReloadAmount)
 {
-	UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun reload, using entire charge pack, new charge amount is %d"), ReloadAmount);
+	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun reload, using entire charge pack, new charge amount is %d"), ReloadAmount);
 	//The lightning gun uses a charge pack, meaning that it uses the entire reload stack at once instead of individual rounds/grenades
 	CurrentAmmo = ReloadAmount;
 	return ReloadAmount;
@@ -138,7 +138,7 @@ void ASLightningGun::DecreaseDamageMultiplier()
 {
 	if (CurrentDamageMultiplierIndex > 0) {
 		DamageMultiplier = DamageMultiplierArray[--CurrentDamageMultiplierIndex];
-		UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun has been off-target for %f seconds; decreased damage multiplier to %f"), DamageMultiplierDecreaseTime, DamageMultiplier);
+		//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun has been off-target for %f seconds; decreased damage multiplier to %f"), DamageMultiplierDecreaseTime, DamageMultiplier);
 	}
 }
 
@@ -154,6 +154,6 @@ void ASLightningGun::IncreaseDamageMultiplier()
 {
 	if (CurrentDamageMultiplierIndex < (DamageMultiplierArray.Num() - 1)) {
 		DamageMultiplier = DamageMultiplierArray[++CurrentDamageMultiplierIndex];
-		UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun has been on-target for %f seconds; increased damage multiplier to %f"), DamageMultiplierIncreaseTime, DamageMultiplier);
+		//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun has been on-target for %f seconds; increased damage multiplier to %f"), DamageMultiplierIncreaseTime, DamageMultiplier);
 	}
 }

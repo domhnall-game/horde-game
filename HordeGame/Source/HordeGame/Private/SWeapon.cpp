@@ -42,7 +42,7 @@ void ASWeapon::BeginPlay()
 	Super::BeginPlay();
 	LastFireTime = -1000.f;
 	CurrentAmmo = MaxLoadedAmmo;
-	UE_LOG(LogTemp, Warning, TEXT("SWeapon -- Max clip size: %d"), MaxLoadedAmmo);
+	//UE_LOG(LogTemp, Warning, TEXT("SWeapon -- Max clip size: %d"), MaxLoadedAmmo);
 }
 
 void ASWeapon::Fire()
@@ -117,7 +117,7 @@ void ASWeapon::Fire()
 	}
 
 	CurrentAmmo--;
-	UE_LOG(LogTemp, Warning, TEXT("SWeapon -- Ammo left in gun: %d out of %d"), CurrentAmmo, MaxLoadedAmmo);
+	//UE_LOG(LogTemp, Warning, TEXT("SWeapon -- Ammo left in gun: %d out of %d"), CurrentAmmo, MaxLoadedAmmo);
 }
 
 void ASWeapon::StartFire()
@@ -136,11 +136,11 @@ int32 ASWeapon::Reload(int32 ReloadAmount) {
 	int32 AmmoToReload = MaxLoadedAmmo - CurrentAmmo;
 
 	if (ReloadAmount < AmmoToReload) {
-		UE_LOG(LogTemp, Warning, TEXT("SWeapon -- Ammo available: %d, Current Ammo: %d, Max clip size: %d, Reloading %d rounds"), ReloadAmount, CurrentAmmo, MaxLoadedAmmo, ReloadAmount);
+		//UE_LOG(LogTemp, Warning, TEXT("SWeapon -- Ammo available: %d, Current Ammo: %d, Max clip size: %d, Reloading %d rounds"), ReloadAmount, CurrentAmmo, MaxLoadedAmmo, ReloadAmount);
 		CurrentAmmo += ReloadAmount;
 		return ReloadAmount;
 	} else {
-		UE_LOG(LogTemp, Warning, TEXT("SWeapon -- Ammo available: %d, Current Ammo: %d, Max clip size: %d, Reloading %d rounds"), ReloadAmount, CurrentAmmo, MaxLoadedAmmo, AmmoToReload);
+		//UE_LOG(LogTemp, Warning, TEXT("SWeapon -- Ammo available: %d, Current Ammo: %d, Max clip size: %d, Reloading %d rounds"), ReloadAmount, CurrentAmmo, MaxLoadedAmmo, AmmoToReload);
 		CurrentAmmo += AmmoToReload;
 		return AmmoToReload;
 	}

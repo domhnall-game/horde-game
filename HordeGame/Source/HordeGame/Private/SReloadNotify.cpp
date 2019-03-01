@@ -10,7 +10,7 @@ void USReloadNotify::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase*
 {
 	AActor* AnimationOwner = MeshComp->GetOwner();
 	if (ASCharacter* Character = Cast<ASCharacter>(AnimationOwner)) {
-		UE_LOG(LogTemp, Warning, TEXT("USReloadNotify -- Custom animation notification ReloadNotify fired; setting %s bIsReloading to false"), *Character->GetName());
+		//UE_LOG(LogTemp, Warning, TEXT("USReloadNotify -- Custom animation notification ReloadNotify fired; setting %s bIsReloading to false"), *Character->GetName());
 		Character->bIsReloading = false;
 	}
 }
