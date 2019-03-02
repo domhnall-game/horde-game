@@ -12,6 +12,7 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Net/UnrealNetwork.h"
 #include "Engine/World.h"
 
 // Sets default values
@@ -55,18 +56,20 @@ void ASCharacter::BeginPlay()
 	CurrentAmmoPerType.Add(EAmmoType::AMMO_Lightning, 1000);
 
 	//Spawn a default weapon
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	if (WeaponList.Num() > 0) {
-		for (int i = 0; i < WeaponList.Num(); i++) {
-			ASWeapon* Weapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[i].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-			Weapon->SetOwner(this);
-			Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
-			Weapon->SetActorHiddenInGame(true);
-			EquippedWeapons.Add(Weapon);
+	if (Role == ROLE_Authority) {
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (WeaponList.Num() > 0) {
+			for (int i = 0; i < WeaponList.Num(); i++) {
+				ASWeapon* Weapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[i].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+				Weapon->SetOwner(this);
+				Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+				Weapon->SetActorHiddenInGame(true);
+				EquippedWeapons.Add(Weapon);
+			}
+			CurrentWeapon = EquippedWeapons[0];
+			CurrentWeapon->SetActorHiddenInGame(false);
 		}
-		CurrentWeapon = EquippedWeapons[0];
-		CurrentWeapon->SetActorHiddenInGame(false);
 	}
 
 	//CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[0].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
@@ -297,3 +300,9 @@ FVector ASCharacter::GetPawnViewLocation() const
 	return Super::GetPawnViewLocation();
 }
 
+void ASCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASCharacter, CurrentWeapon);
+}

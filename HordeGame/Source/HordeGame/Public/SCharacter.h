@@ -67,7 +67,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Player")
 	TArray<TSubclassOf<ASWeapon>> WeaponList;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Weapon")
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = "Weapon")
 	ASWeapon* CurrentWeapon;
 
 	TArray<ASWeapon*> EquippedWeapons;
@@ -97,6 +97,8 @@ public:
 
 	//Override of Pawn's GetPawnViewLocation function; base version uses pawn eyes, but we want to use the camera
 	virtual FVector GetPawnViewLocation() const override;
+
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
 	
 	void AddAmmo(EAmmoType AmmoType, int32 AmmoAmount);
 

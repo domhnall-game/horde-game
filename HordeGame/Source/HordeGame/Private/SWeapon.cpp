@@ -35,6 +35,8 @@ ASWeapon::ASWeapon()
 
 	AmmoType = EAmmoType::AMMO_Rifle;
 	MaxLoadedAmmo = 30;
+
+	SetReplicates(true);
 }
 
 void ASWeapon::BeginPlay()
