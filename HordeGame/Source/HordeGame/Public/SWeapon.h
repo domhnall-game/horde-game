@@ -18,10 +18,17 @@ struct FHitScanTrace
 
 public:
 	UPROPERTY()
-	FVector_NetQuantize TraceFrom;
+	TEnumAsByte<EPhysicalSurface> SurfaceType;
 
 	UPROPERTY()
-	FVector_NetQuantize TraceTo;;
+	FVector_NetQuantize TraceTo;
+
+	//We don't actually care about this property and it is never checked
+	//However, if we update it every time we update anything else in the struct, it forces Unreal to send it anyway
+	//This fixes a bug wherein effects would not play if a character fires at the same location multiple times in a row
+	//UE would not resend the struct because it hadn't changed; with this variable changed, it will now resend the struct
+	UPROPERTY()
+	uint8 BurstCounter;
 };
 
 UCLASS()
@@ -46,6 +53,7 @@ protected:
 	void OnRep_HitScanTrace();
 
 	void PlayFireEffects(FVector ParticleEndVector);
+	void PlayImpactEffect(EPhysicalSurface SurfaceType, FVector ImpactPoint);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* MeshComponent;

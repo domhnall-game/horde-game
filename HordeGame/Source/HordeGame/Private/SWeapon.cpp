@@ -38,6 +38,8 @@ ASWeapon::ASWeapon()
 	MaxLoadedAmmo = 30;
 
 	SetReplicates(true);
+	NetUpdateFrequency = 66.f;
+	MinNetUpdateFrequency = 33.f;
 }
 
 void ASWeapon::BeginPlay()
@@ -76,31 +78,29 @@ void ASWeapon::Fire()
 		//If this is not set to true, we do not get the physical material of the part of the mesh that was hit
 		QueryParams.bReturnPhysicalMaterial = true;
 
+		//Set the default surface type
+		EPhysicalSurface SurfaceType = SurfaceType_Default;
+
 		//Trace the world from pawn eyes to crosshair location (center screen)
 		FHitResult Hit;
 		bool bHitRegistered = GetWorld()->LineTraceSingleByChannel(Hit, OwnerEyeLocation, LineTraceEnd, COLLISION_WEAPON, QueryParams);
 
 		if (bHitRegistered) {
-			//The hitscan found a blocking object, so process damage
-			AActor* HitActor = Hit.GetActor();
-
 			//Set the line trace end to the hit's impact point
 			LineTraceEnd = Hit.ImpactPoint;
 
-			//Get the physical material of the part of the surface that was hit
-			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+			//The hitscan found a blocking object, so process damage
+			AActor* HitActor = Hit.GetActor();
 
-			//Determine appropriate particle effect and damage from the physical material
-			UParticleSystem* SelectedEffect = nullptr;
+			//Get the physical material of the part of the surface that was hit
+			SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+
+			//Calculate damage based on the surface type
 			float Damage = BaseDamage;
 			switch (SurfaceType) {
 			case SURFACE_FLESH_VULN:
 				Damage *= DamageMultiplier;
-			case SURFACE_FLESH_DEFAULT:
-				SelectedEffect = FleshImpactEffect;
-				break;
 			default:
-				SelectedEffect = DefaultImpactEffect;
 				break;
 			}
 
@@ -109,8 +109,11 @@ void ASWeapon::Fire()
 			AActor* DamageCauser = this;
 			UGameplayStatics::ApplyPointDamage(HitActor, Damage, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
 
-			if (ensure(SelectedEffect)) {
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
+			PlayImpactEffect(SurfaceType, Hit.ImpactPoint);
+
+			if (Role == ROLE_Authority) {
+				HitScanTrace.SurfaceType = SurfaceType;
+				HitScanTrace.BurstCounter++;
 			}
 		}
 
@@ -124,6 +127,8 @@ void ASWeapon::Fire()
 
 		if (Role == ROLE_Authority) {
 			HitScanTrace.TraceTo = LineTraceEnd;
+			HitScanTrace.SurfaceType = SurfaceType;
+			HitScanTrace.BurstCounter++;
 		}
 
 		LastFireTime = GetWorld()->TimeSeconds;
@@ -145,11 +150,12 @@ bool ASWeapon::ServerFire_Validate()
 	return true;
 }
 
+//Whenever HitScanTrace gets replicated, it calls this function
 void ASWeapon::OnRep_HitScanTrace()
 {
 	//Play cosmetic weapon FX
-	//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
 	PlayFireEffects(HitScanTrace.TraceTo);
+	PlayImpactEffect(HitScanTrace.SurfaceType, HitScanTrace.TraceTo);
 }
 
 void ASWeapon::StartFire()
@@ -203,6 +209,33 @@ void ASWeapon::PlayFireEffects(FVector ParticleEndVector)
 				PlayerController->ClientPlayCameraShake(FireCamShake);
 			}
 		}
+	}
+}
+
+void ASWeapon::PlayImpactEffect(EPhysicalSurface SurfaceType, FVector ImpactPoint)
+{
+	//Determine appropriate particle effect from the physical material
+	UParticleSystem* SelectedEffect = nullptr;
+	switch (SurfaceType) {
+	case SURFACE_FLESH_VULN:
+	case SURFACE_FLESH_DEFAULT:
+		SelectedEffect = FleshImpactEffect;
+		break;
+	default:
+		SelectedEffect = DefaultImpactEffect;
+		break;
+	}
+
+	if (ensure(SelectedEffect)) {
+		//Get the location of the muzzle to act as the source of the trace location
+		FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
+
+		//Get the direction of the shot, calculated as normalized vector of the endpoint minus the start point
+		FVector ShotDirection = ImpactPoint - MuzzleLocation;
+		ShotDirection.Normalize();
+
+		//Play the effect
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, ImpactPoint, ShotDirection.Rotation());
 	}
 }
 
