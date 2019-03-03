@@ -10,6 +10,20 @@
 
 class UDamageType;
 
+//Contains information of a single hitscan weapon line trace
+USTRUCT()
+struct FHitScanTrace
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	FVector_NetQuantize TraceFrom;
+
+	UPROPERTY()
+	FVector_NetQuantize TraceTo;;
+};
+
 UCLASS()
 class HORDEGAME_API ASWeapon : public AActor
 {
@@ -27,6 +41,9 @@ protected:
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	virtual void ServerFire();
+
+	UFUNCTION()
+	void OnRep_HitScanTrace();
 
 	void PlayFireEffects(FVector ParticleEndVector);
 
@@ -83,6 +100,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FX")
 	UAnimMontage* ReloadMontage;
+
+	UPROPERTY(ReplicatedUsing = OnRep_HitScanTrace)
+	FHitScanTrace HitScanTrace;
 public:
 	// Called every frame
 	//virtual void Tick(float DeltaTime) override;

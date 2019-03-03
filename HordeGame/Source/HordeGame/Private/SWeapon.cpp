@@ -11,6 +11,7 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
+#include "Net/UnrealNetwork.h"
 #include "Engine/World.h"
 
 static int32 DebugWeaponDrawing = 0;
@@ -19,7 +20,7 @@ FAutoConsoleVariableRef CVarDebugWeaponDrawing(TEXT("HORDE.DebugWeapons"), Debug
 // Sets default values
 ASWeapon::ASWeapon()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 
 	MuzzleSocketName = "MuzzleSocket";
@@ -83,6 +84,9 @@ void ASWeapon::Fire()
 			//The hitscan found a blocking object, so process damage
 			AActor* HitActor = Hit.GetActor();
 
+			//Set the line trace end to the hit's impact point
+			LineTraceEnd = Hit.ImpactPoint;
+
 			//Get the physical material of the part of the surface that was hit
 			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
 
@@ -105,7 +109,6 @@ void ASWeapon::Fire()
 			AActor* DamageCauser = this;
 			UGameplayStatics::ApplyPointDamage(HitActor, Damage, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
 
-
 			if (ensure(SelectedEffect)) {
 				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
 			}
@@ -117,7 +120,11 @@ void ASWeapon::Fire()
 		}
 
 		//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
-		PlayFireEffects(bHitRegistered ? Hit.ImpactPoint : LineTraceEnd);
+		PlayFireEffects(LineTraceEnd);
+
+		if (Role == ROLE_Authority) {
+			HitScanTrace.TraceTo = LineTraceEnd;
+		}
 
 		LastFireTime = GetWorld()->TimeSeconds;
 	}
@@ -136,6 +143,13 @@ void ASWeapon::ServerFire_Implementation()
 bool ASWeapon::ServerFire_Validate()
 {
 	return true;
+}
+
+void ASWeapon::OnRep_HitScanTrace()
+{
+	//Play cosmetic weapon FX
+	//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
+	PlayFireEffects(HitScanTrace.TraceTo);
 }
 
 void ASWeapon::StartFire()
@@ -192,12 +206,19 @@ void ASWeapon::PlayFireEffects(FVector ParticleEndVector)
 	}
 }
 
+void ASWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ASWeapon, HitScanTrace, COND_SkipOwner);
+}
+
 // Called when the game starts or when spawned
 /*
 void ASWeapon::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 }
 */
 
