@@ -49,6 +49,10 @@ void ASWeapon::BeginPlay()
 
 void ASWeapon::Fire()
 {
+	if (Role < ROLE_Authority) {
+		ServerFire();
+	}
+
 	if (CurrentAmmo <= 0) { return; }
 
 	AActor* Owner = GetOwner();
@@ -120,6 +124,18 @@ void ASWeapon::Fire()
 
 	CurrentAmmo--;
 	//UE_LOG(LogTemp, Warning, TEXT("SWeapon -- Ammo left in gun: %d out of %d"), CurrentAmmo, MaxLoadedAmmo);
+}
+
+//Necessary because we have made Fire() a Server functon
+void ASWeapon::ServerFire_Implementation()
+{
+	Fire();
+}
+
+//Necessary because we set the "WithValidation" flag in the replication properties for Fire()
+bool ASWeapon::ServerFire_Validate()
+{
+	return true;
 }
 
 void ASWeapon::StartFire()

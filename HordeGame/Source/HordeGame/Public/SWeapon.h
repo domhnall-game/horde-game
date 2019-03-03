@@ -25,6 +25,9 @@ protected:
 
 	virtual void Fire();
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	virtual void ServerFire();
+
 	void PlayFireEffects(FVector ParticleEndVector);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
