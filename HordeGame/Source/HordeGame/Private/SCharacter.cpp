@@ -3,6 +3,7 @@
 #include "SCharacter.h"
 
 #include "HordeGame.h"
+#include "SAmmoInventory.h"
 #include "SHealthComponent.h"
 #include "SWeapon.h"
 
@@ -14,6 +15,39 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/World.h"
+
+// Called when the game starts or when spawned
+void ASCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	DefaultFOV = CameraComponent->FieldOfView;
+
+	for (const TPair<EAmmoType, int32>& DefaultAmmoPair : DefaultAmmoPerType) {
+		FAmmoInventory AmmoInventory;
+		AmmoInventory.AmmoType = DefaultAmmoPair.Key;
+		AmmoInventory.AmmoAmount = DefaultAmmoPair.Value;
+		CurrentAmmoPerType.Insert(AmmoInventory, (uint32) DefaultAmmoPair.Key);
+	}
+
+	//Spawn a default weapon
+	if (Role == ROLE_Authority) {
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (WeaponList.Num() > 0) {
+			for (int i = 0; i < WeaponList.Num(); i++) {
+				ASWeapon* Weapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[i].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+				Weapon->SetOwner(this);
+				Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
+				Weapon->SetActorHiddenInGame(true);
+				EquippedWeapons.Add(Weapon);
+			}
+			SetCurrentWeapon(EquippedWeapons[ID_WEAP_RIFLE], nullptr);
+		}
+	}
+
+	HealthComponent->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
+}
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -33,52 +67,13 @@ ASCharacter::ASCharacter()
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Ignore);
 
-	MaxRifleAmmo = 300;
-	MaxGrenades = 10;
-	MaxLightningCharge = 1000;
+	WeaponAttachSocketName = "weapon_socket";
+
+	MaxAmmoPerType = ASAmmoInventory::InitializedMaxAmmoMap();
+	DefaultAmmoPerType = ASAmmoInventory::InitializedDefaultAmmoMap();
 
 	bIsDead = false;
-}
-
-// Called when the game starts or when spawned
-void ASCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-	
-	DefaultFOV = CameraComponent->FieldOfView;
-
-	MaxAmmoPerType.Add(EAmmoType::AMMO_Rifle, MaxRifleAmmo);
-	MaxAmmoPerType.Add(EAmmoType::AMMO_Grenade, MaxGrenades);
-	MaxAmmoPerType.Add(EAmmoType::AMMO_Lightning, MaxLightningCharge);
-
-	CurrentAmmoPerType.Add(EAmmoType::AMMO_Rifle, 60);
-	CurrentAmmoPerType.Add(EAmmoType::AMMO_Grenade, 3);
-	CurrentAmmoPerType.Add(EAmmoType::AMMO_Lightning, 1000);
-
-	//Spawn a default weapon
-	if (Role == ROLE_Authority) {
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		if (WeaponList.Num() > 0) {
-			for (int i = 0; i < WeaponList.Num(); i++) {
-				ASWeapon* Weapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[i].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-				Weapon->SetOwner(this);
-				Weapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
-				Weapon->SetActorHiddenInGame(true);
-				EquippedWeapons.Add(Weapon);
-			}
-			CurrentWeapon = EquippedWeapons[0];
-			CurrentWeapon->SetActorHiddenInGame(false);
-		}
-	}
-
-	//CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[0].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-	//if (CurrentWeapon) {
-	//	CurrentWeapon->SetOwner(this);
-	//	CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
-	//}
-
-	HealthComponent->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
+	bIsReloading = false;
 }
 
 // Called every frame
@@ -113,6 +108,30 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ASCharacter::StartFire);
 	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ASCharacter::StopFire);
 	PlayerInputComponent->BindAction("Reload", IE_Pressed, this, &ASCharacter::Reload);
+}
+
+void ASCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASCharacter, CurrentWeapon);
+	DOREPLIFETIME(ASCharacter, EquippedWeapons);
+	DOREPLIFETIME(ASCharacter, CurrentAmmoPerType);
+	DOREPLIFETIME_CONDITION(ASCharacter, bIsDead, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(ASCharacter, bIsReloading, COND_SkipOwner);
+}
+
+void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+{
+	//Death
+	if (Health <= 0.0f && !bIsDead) {
+		bIsDead = true;
+		GetMovementComponent()->StopMovementImmediately();
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		DetachFromControllerPendingDestroy();
+		SetLifeSpan(10.f);
+	}
 }
 
 void ASCharacter::MoveForward(float Value)
@@ -152,8 +171,27 @@ void ASCharacter::Aim(float DeltaTime)
 	CameraComponent->SetFieldOfView(NewFOV);
 }
 
+FVector ASCharacter::GetPawnViewLocation() const
+{
+	if (ensure(CameraComponent)) {
+		return CameraComponent->GetComponentLocation();
+	}
+
+	return Super::GetPawnViewLocation();
+}
+
+void ASCharacter::PlayCurrentReloadMontage() {
+	UAnimMontage* ReloadMontage = CurrentWeapon->GetReloadMontage();
+	if (ReloadMontage) {
+		PlayAnimMontage(ReloadMontage);
+	}
+}
+
 void ASCharacter::StartFire()
 {
+	if (!CurrentWeapon) {
+		UE_LOG(LogTemp, Warning, TEXT("does not have a current weapon"));
+	}
 	if (CurrentWeapon && !bIsReloading) {
 		CurrentWeapon->StartFire();
 	} else if (CurrentWeapon && bIsReloading) {
@@ -170,139 +208,99 @@ void ASCharacter::StopFire()
 
 void ASCharacter::Reload()
 {
+	if (Role < ROLE_Authority) {
+		ServerReload();
+	}
+
 	if (!bIsReloading) {
 		bIsReloading = true;
 		StopFire();
 
 		if (CurrentWeapon) {
 			EAmmoType CurrentWeaponAmmoType = CurrentWeapon->GetAmmoType();
-			int32 CurrentAmmo = *CurrentAmmoPerType.Find(CurrentWeaponAmmoType);
+			FAmmoInventory CurrentAmmoInventory = CurrentAmmoPerType[(uint32) CurrentWeaponAmmoType];
+			int32 CurrentAmmo = CurrentAmmoInventory.AmmoAmount;
 			int32 ReloadedAmmo = CurrentWeapon->Reload(CurrentAmmo);
-			CurrentAmmoPerType.Add(CurrentWeaponAmmoType, CurrentAmmo - ReloadedAmmo);
+			CurrentAmmoInventory.AmmoAmount = CurrentAmmo - ReloadedAmmo;
+			CurrentAmmoPerType[(uint8)CurrentWeaponAmmoType] = CurrentAmmoInventory;
 
-			UAnimMontage* ReloadMontage = CurrentWeapon->GetReloadMontage();
-			if (ReloadMontage) {
-				//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Current weapon: %s, playing reload montage"), *CurrentWeapon->GetName());
-				PlayAnimMontage(ReloadMontage);
-			}
+			PlayCurrentReloadMontage();
 		}
-	} else {
-		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is already reloading"));
 	}
+}
+
+void ASCharacter::ServerReload_Implementation()
+{
+	Reload();
+}
+
+bool ASCharacter::ServerReload_Validate()
+{
+	return true;
+}
+
+void ASCharacter::OnRep_Reload()
+{
+	if (bIsReloading) {
+		PlayCurrentReloadMontage();
+	}
+}
+
+void ASCharacter::SetIsReloading(bool bNewIsReloading)
+{
+	bIsReloading = bNewIsReloading;
 }
 
 void ASCharacter::SwitchToRifle()
 {
-	/*
-	CurrentWeapon->Destroy();
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[0].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-	if (CurrentWeapon) {
-		CurrentWeapon->SetOwner(this);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
-	}
-	*/
-	if (!bIsReloading) {
-		StopFire();
-		CurrentWeapon->SetActorHiddenInGame(true);
-		CurrentWeapon = EquippedWeapons[0];
-		CurrentWeapon->SetActorHiddenInGame(false);
-		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Rifle"));
-	} else {
-		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
-	}
+	SetCurrentWeapon(EquippedWeapons[ID_WEAP_RIFLE], CurrentWeapon);
 }
 
 void ASCharacter::SwitchToLauncher()
 {
-	/*
-	CurrentWeapon->Destroy();
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[1].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-	if (CurrentWeapon) {
-		CurrentWeapon->SetOwner(this);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
-	}
-	*/
-	if (!bIsReloading) {
-		StopFire();
-		CurrentWeapon->SetActorHiddenInGame(true);
-		CurrentWeapon = EquippedWeapons[1];
-		CurrentWeapon->SetActorHiddenInGame(false);
-		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Grenade Launcher"));
-	} else {
-		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
-	}
+	SetCurrentWeapon(EquippedWeapons[ID_WEAP_LAUNCHER], CurrentWeapon);
 }
 
 void ASCharacter::SwitchToLightningGun()
 {
-	/*
-	CurrentWeapon->Destroy();
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	CurrentWeapon = GetWorld()->SpawnActor<ASWeapon>(WeaponList[1].Get(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
-	if (CurrentWeapon) {
-		CurrentWeapon->SetOwner(this);
-		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
-	}
-	*/
+	SetCurrentWeapon(EquippedWeapons[ID_WEAP_LIGHTNING], CurrentWeapon);
+}
+
+void ASCharacter::OnRep_CurrentWeapon(ASWeapon* PreviousWeapon)
+{
+	SetCurrentWeapon(CurrentWeapon, PreviousWeapon);
+}
+
+void ASCharacter::SetCurrentWeapon(ASWeapon* NewWeapon, ASWeapon* PreviousWeapon)
+{
 	if (!bIsReloading) {
 		StopFire();
-		CurrentWeapon->SetActorHiddenInGame(true);
-		CurrentWeapon = EquippedWeapons[2];
-		CurrentWeapon->SetActorHiddenInGame(false);
-		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Switched to Lightning Gun"));
-	} else {
-		//UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Character is reloading, cannot switch weapons"));
+
+		if (PreviousWeapon) {
+			PreviousWeapon->SetActorHiddenInGame(true);
+		}
+		if (NewWeapon) {
+			NewWeapon->SetActorHiddenInGame(false);
+			CurrentWeapon = NewWeapon;
+		}
 	}
 }
 
-void ASCharacter::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+void ASCharacter::AddAmmo(EAmmoType AmmoTypeToAdd, int32 AmmoAmountToAdd)
 {
-	//Death
-	if (Health <= 0.0f && !bIsDead) {
-		bIsDead = true;
-		GetMovementComponent()->StopMovementImmediately();
-		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-		DetachFromControllerPendingDestroy();
-		SetLifeSpan(10.f);
-	}
+	FAmmoInventory AmmoInventory = CurrentAmmoPerType[(uint8) AmmoTypeToAdd];
+	int32 CurrentAmount = AmmoInventory.AmmoAmount;
+	int32 MaxAmount = *MaxAmmoPerType.Find(AmmoTypeToAdd);
+	AmmoInventory.AmmoAmount = FMath::Min(CurrentAmount + AmmoAmountToAdd, MaxAmount);
+	CurrentAmmoPerType[(uint8) AmmoTypeToAdd] = AmmoInventory;
 }
 
-void ASCharacter::AddAmmo(EAmmoType AmmoType, int32 AmmoAmount)
+int32 ASCharacter::GetCurrentAmmoForType(EAmmoType AmmoType) const
 {
-	int32 CurrentAmmoForType = *CurrentAmmoPerType.Find(AmmoType);
-	int32 MaxAmmoForType = *MaxAmmoPerType.Find(AmmoType);
-	CurrentAmmoForType = FMath::Min(CurrentAmmoForType + AmmoAmount, MaxAmmoForType);
-	CurrentAmmoPerType.Add(AmmoType, CurrentAmmoForType);
-
-	/*
-	if (AmmoType == EAmmoType::AMMO_Grenade) {
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Received %d ammo for ammo type grenade"), AmmoAmount);
-	} else if (AmmoType == EAmmoType::AMMO_Rifle) {
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Received %d ammo for ammo type rifle"), AmmoAmount);
-	} else if (AmmoType == EAmmoType::AMMO_Lightning) {
-		UE_LOG(LogTemp, Warning, TEXT("SCharacter -- Received %d ammo for ammo type lightning"), AmmoAmount);
-	}
-	*/
+	return CurrentAmmoPerType[(uint8)AmmoType].AmmoAmount;
 }
 
-FVector ASCharacter::GetPawnViewLocation() const
+int32 ASCharacter::GetMaxAmmoForType(EAmmoType AmmoType) const
 {
-	if (ensure(CameraComponent)) {
-		return CameraComponent->GetComponentLocation();
-	}
-
-	return Super::GetPawnViewLocation();
-}
-
-void ASCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ASCharacter, CurrentWeapon);
+	return *MaxAmmoPerType.Find(AmmoType);
 }

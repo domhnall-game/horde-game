@@ -6,6 +6,7 @@
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 ASAmmoPickup::ASAmmoPickup()
@@ -17,6 +18,7 @@ ASAmmoPickup::ASAmmoPickup()
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
 	CollisionComponent->InitSphereRadius(5.0f);
 	CollisionComponent->SetCollisionProfileName("Projectile");
+	CollisionComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 
 	// Players can't walk on it
 	CollisionComponent->SetWalkableSlopeOverride(FWalkableSlopeOverride(WalkableSlope_Unwalkable, 0.f));
@@ -25,7 +27,10 @@ ASAmmoPickup::ASAmmoPickup()
 
 	//Set up a mesh component
 	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	MeshComponent->SetupAttachment(RootComponent);
+
+	SetReplicates(true);
 }
 
 // Called when the game starts or when spawned
@@ -33,7 +38,9 @@ void ASAmmoPickup::BeginPlay()
 {
 	Super::BeginPlay();
 
-	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ASAmmoPickup::OnOverlapBegin);	// set up a notification for when this component hits something blocking
+	if (Role == ROLE_Authority) {
+		CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ASAmmoPickup::OnOverlapBegin);	// set up a notification for when this component hits something overlapping
+	}
 }
 
 // Called every frame
