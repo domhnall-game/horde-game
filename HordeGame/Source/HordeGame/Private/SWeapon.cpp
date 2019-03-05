@@ -104,14 +104,14 @@ void ASWeapon::Fire()
 				break;
 			}
 
-			FVector HitFromDirection = OwnerEyeRotation.Vector();
-			AController* HitInstigatorController = Owner->GetInstigatorController();
-			AActor* DamageCauser = this;
-			UGameplayStatics::ApplyPointDamage(HitActor, Damage, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
-
 			PlayImpactEffect(SurfaceType, Hit.ImpactPoint);
 
 			if (Role == ROLE_Authority) {
+				FVector HitFromDirection = OwnerEyeRotation.Vector();
+				AController* HitInstigatorController = Owner->GetInstigatorController();
+				AActor* DamageCauser = this;
+				UGameplayStatics::ApplyPointDamage(HitActor, Damage, HitFromDirection, Hit, HitInstigatorController, DamageCauser, DamageType);
+
 				HitScanTrace.SurfaceType = SurfaceType;
 				HitScanTrace.BurstCounter++;
 			}
@@ -187,11 +187,11 @@ int32 ASWeapon::Reload(int32 ReloadAmount) {
 void ASWeapon::PlayFireEffects(FVector ParticleEndVector)
 {
 	//Play the muzzle flash
-	if (ensure(MuzzleEffect)) {
+	if (MuzzleEffect) {
 		UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComponent, MuzzleSocketName);
 	}
 
-	if (ensure(TracerEffect)) {
+	if (TracerEffect) {
 		FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
 		UParticleSystemComponent* TracerParticle = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TracerEffect, MuzzleLocation);
 		if (TracerParticle) {

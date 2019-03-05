@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
+#include "Net/UnrealNetwork.h"
 #include "Engine/World.h"
 
 ASLightningGun::ASLightningGun()
@@ -19,10 +20,10 @@ ASLightningGun::ASLightningGun()
 	MuzzleSocketName = "ProjectileLaunchPoint";
 	ChargeUpTime = 3.f;
 	AutoFireDelay = 0.05f;
-	DamageMultiplierIncreaseTime = 3.f;
+	DamageMultiplierIncreaseTime = 2.f;
 	DamageMultiplierDecreaseTime = 1.f;
 
-	BaseDamage = 0.01f;
+	BaseDamage = 0.4f;
 	DamageMultiplier = 1.f;
 	DamageMultiplierArray.Add(1.f);
 	DamageMultiplierArray.Add(2.f);
@@ -33,6 +34,8 @@ ASLightningGun::ASLightningGun()
 
 	AmmoType = EAmmoType::AMMO_Lightning;
 	MaxLoadedAmmo = 1000;
+
+	SetReplicates(true);
 }
 
 void ASLightningGun::BeginPlay()
@@ -48,12 +51,18 @@ void ASLightningGun::Fire()
 {
 	if (CurrentAmmo <= 0) { return; }
 
-	AActor* Owner = GetOwner();
+	if (Role < ROLE_Authority) {
+		ServerFire();
+	}
 
+	bool bHitRegistered = false;
+	FHitResult Hit;
+	FVector OwnerEyeLocation;
+	FRotator OwnerEyeRotation;
+
+	AActor* Owner = GetOwner();
 	if (ensure(Owner)) {
 		//Get the data from the owner's eyes
-		FVector OwnerEyeLocation;
-		FRotator OwnerEyeRotation;
 		Owner->GetActorEyesViewPoint(OwnerEyeLocation, OwnerEyeRotation);
 
 		//Create the line trace end based on the vector from the owner's eyes to a very far distance
@@ -65,9 +74,25 @@ void ASLightningGun::Fire()
 		QueryParams.AddIgnoredActor(this);
 
 		//Trace the world from pawn eyes to crosshair location (center screen)
-		FHitResult Hit;
-		bool bHitRegistered = GetWorld()->LineTraceSingleByChannel(Hit, OwnerEyeLocation, LineTraceEnd, COLLISION_WEAPON, QueryParams);
+		bHitRegistered = GetWorld()->LineTraceSingleByChannel(Hit, OwnerEyeLocation, LineTraceEnd, COLLISION_WEAPON, QueryParams);
 
+		//Draw a debug line for the hitscan
+		extern FAutoConsoleVariableRef CVarDebugWeaponDrawing;
+		if (CVarDebugWeaponDrawing->GetInt()) {
+			DrawDebugLine(GetWorld(), OwnerEyeLocation, LineTraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
+		}
+
+		//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
+		PlayFireEffects(bHitRegistered ? Hit.ImpactPoint : LineTraceEnd);
+
+		LastFireTime = GetWorld()->TimeSeconds;
+	}
+
+	CurrentAmmo--;
+	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Ammo left in gun: %d out of %d"), CurrentAmmo, MaxLoadedAmmo);
+
+	//Only do damage if this is the server
+	if (Role == ROLE_Authority) {
 		if (bHitRegistered) {
 			//The hitscan found a blocking object, so process damage
 			AActor* HitActor = Hit.GetActor();
@@ -85,26 +110,21 @@ void ASLightningGun::Fire()
 		} else {
 			StartDecreaseDamageMulitiplierTimer();
 		}
-
-		//Draw a debug line for the hitscan
-		extern FAutoConsoleVariableRef CVarDebugWeaponDrawing;
-		if (CVarDebugWeaponDrawing->GetInt()) {
-			DrawDebugLine(GetWorld(), OwnerEyeLocation, LineTraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
-		}
-
-		//If we had a hit, the end point of the tracer is the impact point of the hit; otherwise, it's wherever we set the endpoint of the trace to
-		PlayFireEffects(bHitRegistered ? Hit.ImpactPoint : LineTraceEnd);
-
-		LastFireTime = GetWorld()->TimeSeconds;
 	}
+}
 
-	CurrentAmmo--;
-	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Ammo left in gun: %d out of %d"), CurrentAmmo, MaxLoadedAmmo);
+void ASLightningGun::ServerFire_Implementation()
+{
+	Fire();
+}
+
+bool ASLightningGun::ServerFire_Validate()
+{
+	return true;
 }
 
 void ASLightningGun::StartFire()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Needs to charge up for %f seconds before it fires"), ChargeUpTime);
 	GetWorldTimerManager().SetTimer(TimerHandle_AutoFireDelay, this, &ASLightningGun::Fire, AutoFireDelay, true, ChargeUpTime);
 }
 
@@ -115,12 +135,10 @@ void ASLightningGun::StopFire()
 	GetWorldTimerManager().ClearTimer(TimerHandle_AutoFireDelay);
 	GetWorldTimerManager().ClearTimer(TimerHandle_IncreaseDamageMultiplier);
 	GetWorldTimerManager().ClearTimer(TimerHandle_DecreaseDamageMultiplier);
-	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun fire has stopped, resetting damage multiplier to %f"), DamageMultiplier);
 }
 
 int32 ASLightningGun::Reload(int32 ReloadAmount)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun reload, using entire charge pack, new charge amount is %d"), ReloadAmount);
 	//The lightning gun uses a charge pack, meaning that it uses the entire reload stack at once instead of individual rounds/grenades
 	CurrentAmmo = ReloadAmount;
 	return ReloadAmount;
@@ -134,14 +152,6 @@ void ASLightningGun::StartDecreaseDamageMulitiplierTimer()
 	}
 }
 
-void ASLightningGun::DecreaseDamageMultiplier()
-{
-	if (CurrentDamageMultiplierIndex > 0) {
-		DamageMultiplier = DamageMultiplierArray[--CurrentDamageMultiplierIndex];
-		//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun has been off-target for %f seconds; decreased damage multiplier to %f"), DamageMultiplierDecreaseTime, DamageMultiplier);
-	}
-}
-
 void ASLightningGun::StartIncreaseDamageMulitiplierTimer()
 {
 	if (!GetWorldTimerManager().IsTimerActive(TimerHandle_IncreaseDamageMultiplier)) {
@@ -150,10 +160,21 @@ void ASLightningGun::StartIncreaseDamageMulitiplierTimer()
 	}
 }
 
+void ASLightningGun::DecreaseDamageMultiplier()
+{
+	CurrentDamageMultiplierIndex = FMath::Clamp(--CurrentDamageMultiplierIndex, 0, DamageMultiplierArray.Num() - 1);
+	DamageMultiplier = DamageMultiplierArray[CurrentDamageMultiplierIndex];
+}
+
 void ASLightningGun::IncreaseDamageMultiplier()
 {
-	if (CurrentDamageMultiplierIndex < (DamageMultiplierArray.Num() - 1)) {
-		DamageMultiplier = DamageMultiplierArray[++CurrentDamageMultiplierIndex];
-		//UE_LOG(LogTemp, Warning, TEXT("SLightningGun -- Lightning gun has been on-target for %f seconds; increased damage multiplier to %f"), DamageMultiplierIncreaseTime, DamageMultiplier);
-	}
+	CurrentDamageMultiplierIndex = FMath::Clamp(++CurrentDamageMultiplierIndex, 0, DamageMultiplierArray.Num() - 1);
+	DamageMultiplier = DamageMultiplierArray[CurrentDamageMultiplierIndex];
+}
+
+void ASLightningGun::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASLightningGun, CurrentDamageMultiplierIndex);
 }

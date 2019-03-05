@@ -129,6 +129,8 @@ protected:
 	TArray<ASWeapon*> EquippedWeapons;
 public:
 	void SetCurrentWeapon(ASWeapon* NewWeapon, ASWeapon* PreviousWeapon);
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSetCurrentWeapon(ASWeapon* NewWeapon, ASWeapon* PreviousWeapon);
 	/******************************************************************************************
 	  * Inventory
 	  *****************************************************************************************/

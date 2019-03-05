@@ -273,6 +273,17 @@ void ASCharacter::OnRep_CurrentWeapon(ASWeapon* PreviousWeapon)
 
 void ASCharacter::SetCurrentWeapon(ASWeapon* NewWeapon, ASWeapon* PreviousWeapon)
 {
+	if (NewWeapon == PreviousWeapon) {
+		return;
+	}
+
+	//I don't fully understand it, but calling ServerSetCurrentWeapon with "Role < ROLE_Authority" appears to try to change the other players' weapons when a client changes his?
+	//It doesn't succeed in changing other players weapons, but it tries to
+	//Calling it with this role check fixes that; it now seems to only call ServerSetCurrentWeapon for the player actually doing the weapon swap
+	if (Role == ROLE_AutonomousProxy) {
+		ServerSetCurrentWeapon(NewWeapon, PreviousWeapon);
+	}
+
 	if (!bIsReloading) {
 		StopFire();
 
@@ -284,6 +295,16 @@ void ASCharacter::SetCurrentWeapon(ASWeapon* NewWeapon, ASWeapon* PreviousWeapon
 			CurrentWeapon = NewWeapon;
 		}
 	}
+}
+
+void ASCharacter::ServerSetCurrentWeapon_Implementation(ASWeapon* NewWeapon, ASWeapon* PreviousWeapon)
+{
+	SetCurrentWeapon(NewWeapon, PreviousWeapon);
+}
+
+bool ASCharacter::ServerSetCurrentWeapon_Validate(ASWeapon* NewWeapon, ASWeapon* PreviousWeapon)
+{
+	return true;
 }
 
 void ASCharacter::AddAmmo(EAmmoType AmmoTypeToAdd, int32 AmmoAmountToAdd)

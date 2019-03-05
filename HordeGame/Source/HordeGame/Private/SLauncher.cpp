@@ -20,6 +20,8 @@ ASLauncher::ASLauncher()
 
 	AmmoType = EAmmoType::AMMO_Grenade;
 	MaxLoadedAmmo = 1;
+
+	SetReplicates(true);
 }
 
 void ASLauncher::BeginPlay()
@@ -33,30 +35,48 @@ void ASLauncher::BeginPlay()
 void ASLauncher::Fire()
 {
 	if (CurrentAmmo <= 0) { return; }
-	AActor* Owner = GetOwner();
 
-	// try and fire a projectile
-	if (ensure(ProjectileClass) && ensure(Owner))
-	{
-		//We want to fire from the muzzle location, but at an angle based on the camera, not the muzzle
-		FVector OwnerEyeLocation;
-		FRotator OwnerEyeRotation;
-		Owner->GetActorEyesViewPoint(OwnerEyeLocation, OwnerEyeRotation);
-		FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
+	if (Role < ROLE_Authority) {
+		ServerFire();
+	}
 
-		FActorSpawnParameters ActorSpawnParams;
-		ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-		ActorSpawnParams.Owner = this;
-		ActorSpawnParams.Instigator = Cast<APawn>(Owner);
+	//Only the server should be spawning actors
+	if (Role == ROLE_Authority) {
+		AActor* Owner = GetOwner();
 
-		// spawn the projectile at the muzzle
-		ASLauncherProjectile* Projectile = GetWorld()->SpawnActor<ASLauncherProjectile>(ProjectileClass, MuzzleLocation, OwnerEyeRotation, ActorSpawnParams);
+		// try and fire a projectile
+		if (ensure(ProjectileClass) && ensure(Owner))
+		{
+			//We want to fire from the muzzle location, but at an angle based on the camera, not the muzzle
+			FVector OwnerEyeLocation;
+			FRotator OwnerEyeRotation;
+			Owner->GetActorEyesViewPoint(OwnerEyeLocation, OwnerEyeRotation);
+			FVector MuzzleLocation = MeshComponent->GetSocketLocation(MuzzleSocketName);
+
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+			ActorSpawnParams.Owner = Owner;
+			ActorSpawnParams.Instigator = Cast<APawn>(Owner);
+
+			// spawn the projectile at the muzzle
+			ASLauncherProjectile* Projectile = GetWorld()->SpawnActor<ASLauncherProjectile>(ProjectileClass, MuzzleLocation, OwnerEyeRotation, ActorSpawnParams);
+		}
 	}
 
 	LastFireTime = GetWorld()->TimeSeconds;
 
 	CurrentAmmo--;
 	//UE_LOG(LogTemp, Warning, TEXT("SLauncher -- Ammo left in gun: %d out of %d"), CurrentAmmo, MaxLoadedAmmo);
+}
+
+void ASLauncher::ServerFire_Implementation()
+{
+	Fire();
+}
+
+bool ASLauncher::ServerFire_Validate()
+{
+	return true;
 }
 
 void ASLauncher::StartFire()

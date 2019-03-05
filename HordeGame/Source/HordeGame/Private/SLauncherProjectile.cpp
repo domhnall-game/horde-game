@@ -33,6 +33,8 @@ ASLauncherProjectile::ASLauncherProjectile()
 	ProjectileMovement->MaxSpeed = 3000.f;
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = true;
+
+	SetReplicates(true);
 }
 
 void ASLauncherProjectile::BeginPlay()
@@ -40,21 +42,23 @@ void ASLauncherProjectile::BeginPlay()
 	Super::BeginPlay();
 
 	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &ASLauncherProjectile::OnOverlapBegin);	// set up a notification for when this component hits something blocking
-	//CollisionComponent->OnComponentHit.AddDynamic(this, &ASLauncherProjectile::OnHit);	// set up a notification for when this component hits something blocking
 	GetWorldTimerManager().SetTimer(TimerHandle_ExplosionDelay, this, &ASLauncherProjectile::Explode, 1.0f);
 }
 
 void ASLauncherProjectile::Explode()
 {
+	//LauncherProjectiles are ONLY ever spawned by the server (see SLauncher.Fire())
+	//So there's no need for a ServerExplode() function, we only need an authority check for the damage
+	if (Role == ROLE_Authority) {
+		TArray<AActor*> IgnoreActors;
+		UGameplayStatics::ApplyRadialDamageWithFalloff(GetWorld(), 50.f, 10.f, GetActorLocation(), 50.f, 500.f, 1.0f, DamageType, IgnoreActors, this, GetInstigatorController());
+		Destroy();
+	}
+
 	//DrawDebugSphere(GetWorld(), GetActorLocation(), 200.f, 12, FColor::Red, false, 1.0f, 0, 1.0f);
 	if (ensure(ExplosionEffect)) {
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, GetActorLocation(), GetActorRotation());
 	}
-
-	TArray<AActor*> IgnoreActors;
-	UGameplayStatics::ApplyRadialDamageWithFalloff(GetWorld(), 50.f, 10.f, GetActorLocation(), 50.f, 500.f, 1.0f, DamageType, IgnoreActors, this, GetInstigatorController());
-
-	Destroy();
 }
 
 void ASLauncherProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -63,6 +67,7 @@ void ASLauncherProjectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, A
 
 	Explode();
 }
+
 /*
 void ASLauncherProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {

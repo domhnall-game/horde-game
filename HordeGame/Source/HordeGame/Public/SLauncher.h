@@ -22,6 +22,9 @@ protected:
 
 	virtual void Fire() override;
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	virtual void ServerFire() override;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile")
 	TSubclassOf<ASLauncherProjectile> ProjectileClass;
 

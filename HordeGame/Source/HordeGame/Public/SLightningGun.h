@@ -20,8 +20,12 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void Fire() override;
+	UFUNCTION(Server, Reliable, WithValidation)
+	virtual void ServerFire() override;
+
 	void StartDecreaseDamageMulitiplierTimer();
 	void StartIncreaseDamageMulitiplierTimer();
+
 	void DecreaseDamageMultiplier();
 	void IncreaseDamageMultiplier();
 
@@ -33,7 +37,7 @@ protected:
 	float DamageMultiplierDecreaseTime;
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	TArray<float> DamageMultiplierArray;
-
+	UPROPERTY(Replicated)
 	int32 CurrentDamageMultiplierIndex;
 
 	FTimerHandle TimerHandle_ChargeUp;
