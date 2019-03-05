@@ -47,6 +47,7 @@ void ASExplodingBarrel::BeginPlay()
 void ASExplodingBarrel::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* InputDamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
 	//Death
+	//We do all physics on the server and replicate the actor's movement rather than running physics on each client separately
 	if (Health <= 0.0f && !bIsExploded) {
 		bIsExploded = true;
 		OnRep_Exploded();
