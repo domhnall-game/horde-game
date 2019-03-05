@@ -19,8 +19,21 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	FVector GetNextPathPoint();
+
 	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
+
+	FVector NextPathPoint;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Tracking")
+	float MovementForce;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Tracking")
+	float RequiredDistanceToTarget;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Tracking")
+	bool bUseVelocityChange;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;	
