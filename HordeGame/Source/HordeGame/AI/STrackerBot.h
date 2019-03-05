@@ -22,6 +22,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	FVector GetNextPathPoint();
+	void SelfDestruct();
 
 	UFUNCTION()
 	void OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
@@ -35,7 +36,22 @@ protected:
 	//Dynamic material to pulse on damage
 	UMaterialInstanceDynamic* DynamicMaterialInst;
 
+	UPROPERTY(EditDefaultsOnly, Category = "FX")
+	UParticleSystem* ExplosionEffect;
+
 	FVector NextPathPoint;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Damage")
+	float BaseDamage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Damage")
+	float ExplosionRadiusOuter;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Damage")
+	float ExplosionRadiusInner;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Damage")
+	float DamageFalloff;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Tracking")
 	float MovementForce;
@@ -45,6 +61,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Tracking")
 	bool bUseVelocityChange;
+
+	bool bExploded;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;	

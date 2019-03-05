@@ -3,6 +3,7 @@
 #include "STrackerBot.h"
 
 #include "GameFramework/Character.h"
+#include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "AI/Navigation/NavigationPath.h"
@@ -28,6 +29,12 @@ ASTrackerBot::ASTrackerBot()
 	bUseVelocityChange = true;
 	MovementForce = 500;
 	RequiredDistanceToTarget = 100;
+
+	BaseDamage = 50;
+	ExplosionRadiusInner = 100;
+	ExplosionRadiusOuter = 200;
+	DamageFalloff = 0.5f;
+	bExploded = false;
 }
 
 // Called when the game starts or when spawned
@@ -75,15 +82,41 @@ FVector ASTrackerBot::GetNextPathPoint()
 	return GetActorLocation();
 }
 
+void ASTrackerBot::SelfDestruct()
+{
+	if (bExploded) {
+		return;
+	}
+
+	bExploded = true;
+
+	//Play explosion particle
+	if (ExplosionEffect) {
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
+	}
+
+	//Apply damage
+	TArray<AActor*> IgnoredActors;
+	IgnoredActors.Add(this);
+	UGameplayStatics::ApplyRadialDamageWithFalloff(this, BaseDamage, 20, GetActorLocation(), ExplosionRadiusInner, ExplosionRadiusOuter, DamageFalloff, nullptr, IgnoredActors, this, GetInstigatorController());
+	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadiusInner, 12, FColor::Red, false, 2.f, 0, 3.f);
+	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadiusOuter, 12, FColor::Yellow, false, 2.f, 0, 3.f);
+
+	//Get rid of actor
+	Destroy();
+}
+
 void ASTrackerBot::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
 	UE_LOG(LogTemp, Warning, TEXT("%s: %f HP"), *GetName(), Health);
 
-	//TODO: Pulse material on hit
-
+	//Pulse material on hit
 	if (DynamicMaterialInst) {
 		DynamicMaterialInst->SetScalarParameterValue("LastTimeDamageTaken", GetWorld()->TimeSeconds);
 	}
 
 	//Explode on death
+	if (Health <= 0.f) {
+		SelfDestruct();
+	}
 }
