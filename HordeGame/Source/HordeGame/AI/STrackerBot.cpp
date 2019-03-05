@@ -4,9 +4,12 @@
 
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "AI/Navigation/NavigationPath.h"
 #include "AI/Navigation/NavigationSystem.h"
+#include "SHealthComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Engine/World.h"
 
 // Sets default values
 ASTrackerBot::ASTrackerBot()
@@ -19,16 +22,21 @@ ASTrackerBot::ASTrackerBot()
 	MeshComponent->SetSimulatePhysics(true);
 	RootComponent = MeshComponent;
 
-	bUseVelocityChange = false;
-	MovementForce = 1000;
-	RequiredDistanceToTarget = 100;
+	HealthComponent = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComponent"));
+	HealthComponent->OnHealthChanged.AddDynamic(this, &ASTrackerBot::OnHealthChanged);
 
+	bUseVelocityChange = true;
+	MovementForce = 500;
+	RequiredDistanceToTarget = 100;
 }
 
 // Called when the game starts or when spawned
 void ASTrackerBot::BeginPlay()
 {
 	Super::BeginPlay();
+
+	//Get the dynamic material instance
+	DynamicMaterialInst = MeshComponent->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComponent->GetMaterial(0));
 	
 	NextPathPoint = GetNextPathPoint();
 }
@@ -65,4 +73,17 @@ FVector ASTrackerBot::GetNextPathPoint()
 
 	//Failed to find a path
 	return GetActorLocation();
+}
+
+void ASTrackerBot::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+{
+	UE_LOG(LogTemp, Warning, TEXT("%s: %f HP"), *GetName(), Health);
+
+	//TODO: Pulse material on hit
+
+	if (DynamicMaterialInst) {
+		DynamicMaterialInst->SetScalarParameterValue("LastTimeDamageTaken", GetWorld()->TimeSeconds);
+	}
+
+	//Explode on death
 }

@@ -42,7 +42,6 @@ void USHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, 
 	//Update health; cannot go below 0 or over DefaultHealth
 	Health = FMath::Clamp(Health - Damage, 0.0f, DefaultHealth);
 
-	UE_LOG(LogTemp, Warning, TEXT("%f damage taken by %s"), Damage, *GetOwner()->GetName());
 	OnHealthChanged.Broadcast(this, Health, Damage, DamageType, InstigatedBy, DamageCauser);
 }
 
