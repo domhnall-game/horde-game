@@ -7,6 +7,7 @@
 #include "STrackerBot.generated.h"
 
 class USHealthComponent;
+class USphereComponent;
 
 UCLASS()
 class HORDEGAME_API ASTrackerBot : public APawn
@@ -25,13 +26,22 @@ protected:
 	void SelfDestruct();
 
 	UFUNCTION()
+	void DamageSelf();
+
+	UFUNCTION()
 	void OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
+
+	UFUNCTION()
+	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
 	USHealthComponent* HealthComponent;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Components")
+	USphereComponent* SphereComponent;
 
 	//Dynamic material to pulse on damage
 	UMaterialInstanceDynamic* DynamicMaterialInst;
@@ -62,7 +72,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tracking")
 	bool bUseVelocityChange;
 
+	bool bStartedSelfDestruct;
 	bool bExploded;
+	FTimerHandle TimerHandle_SelfDamage;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;	

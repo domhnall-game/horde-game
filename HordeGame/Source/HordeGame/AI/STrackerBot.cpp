@@ -2,6 +2,8 @@
 
 #include "STrackerBot.h"
 
+#include "SCharacter.h"
+
 #include "GameFramework/Character.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
@@ -9,7 +11,9 @@
 #include "AI/Navigation/NavigationPath.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "SHealthComponent.h"
+#include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "TimerManager.h"
 #include "Engine/World.h"
 
 // Sets default values
@@ -23,8 +27,13 @@ ASTrackerBot::ASTrackerBot()
 	MeshComponent->SetSimulatePhysics(true);
 	RootComponent = MeshComponent;
 
+	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
+	SphereComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SphereComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	SphereComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	SphereComponent->SetupAttachment(RootComponent);
+
 	HealthComponent = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComponent"));
-	HealthComponent->OnHealthChanged.AddDynamic(this, &ASTrackerBot::OnHealthChanged);
 
 	bUseVelocityChange = true;
 	MovementForce = 500;
@@ -44,6 +53,14 @@ void ASTrackerBot::BeginPlay()
 
 	//Get the dynamic material instance
 	DynamicMaterialInst = MeshComponent->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComponent->GetMaterial(0));
+	if (DynamicMaterialInst) {
+		DynamicMaterialInst->SetScalarParameterValue("DefaultHealth", HealthComponent->GetDefaultHealth());
+		DynamicMaterialInst->SetScalarParameterValue("CurrentHealth", HealthComponent->GetCurrentHealth());
+	}
+
+	HealthComponent->OnHealthChanged.AddDynamic(this, &ASTrackerBot::OnHealthChanged);
+	SphereComponent->SetSphereRadius(ExplosionRadiusOuter);
+	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ASTrackerBot::OnOverlapBegin);
 	
 	NextPathPoint = GetNextPathPoint();
 }
@@ -106,17 +123,34 @@ void ASTrackerBot::SelfDestruct()
 	Destroy();
 }
 
+void ASTrackerBot::DamageSelf()
+{
+	UGameplayStatics::ApplyDamage(this, 20, GetInstigatorController(), this, nullptr);
+}
+
 void ASTrackerBot::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
 	UE_LOG(LogTemp, Warning, TEXT("%s: %f HP"), *GetName(), Health);
 
 	//Pulse material on hit
 	if (DynamicMaterialInst) {
-		DynamicMaterialInst->SetScalarParameterValue("LastTimeDamageTaken", GetWorld()->TimeSeconds);
+		DynamicMaterialInst->SetScalarParameterValue("CurrentHealth", Health);
 	}
 
 	//Explode on death
 	if (Health <= 0.f) {
 		SelfDestruct();
+	}
+}
+
+void ASTrackerBot::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (!bStartedSelfDestruct) {
+		ASCharacter* PlayerPawn = Cast<ASCharacter>(OtherActor);
+		if (PlayerPawn) {
+			//Start self-destruction sequence
+			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, 0.5f, true, 0.0f);
+			bStartedSelfDestruct = true;
+		}
 	}
 }

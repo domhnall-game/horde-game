@@ -37,4 +37,7 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnHealthChangedSignature OnHealthChanged;
+
+	float GetDefaultHealth() { return DefaultHealth; }
+	float GetCurrentHealth() { return Health; }
 };
