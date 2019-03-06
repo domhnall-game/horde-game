@@ -11,6 +11,7 @@
 #include "AI/Navigation/NavigationPath.h"
 #include "AI/Navigation/NavigationSystem.h"
 #include "SHealthComponent.h"
+#include "Sound/SoundCue.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "TimerManager.h"
@@ -39,10 +40,16 @@ ASTrackerBot::ASTrackerBot()
 	MovementForce = 500;
 	RequiredDistanceToTarget = 100;
 
+	RollingVolumeMinSpeed = 10;
+	RollingVolumeMaxSpeed = 1000;
+	RollingVolumeMinLoudness = 0.1;
+	RollingVolumeMaxLoudness = 2;
+
 	BaseDamage = 50;
 	ExplosionRadiusInner = 100;
 	ExplosionRadiusOuter = 200;
 	DamageFalloff = 0.5f;
+	SelfDamageInterval = 0.5f;
 	bExploded = false;
 }
 
@@ -61,8 +68,13 @@ void ASTrackerBot::BeginPlay()
 	HealthComponent->OnHealthChanged.AddDynamic(this, &ASTrackerBot::OnHealthChanged);
 	SphereComponent->SetSphereRadius(ExplosionRadiusOuter);
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ASTrackerBot::OnOverlapBegin);
+
+	RollingVolumeInputSpeed = FVector2D(RollingVolumeMinSpeed, RollingVolumeMaxSpeed);
+	RollingVolumeOutputLoudness = FVector2D(RollingVolumeMinLoudness, RollingVolumeMaxLoudness);
 	
 	NextPathPoint = GetNextPathPoint();
+
+	UGameplayStatics::SpawnSoundAttached(RollingSound, RootComponent);
 }
 
 // Called every frame
@@ -81,6 +93,15 @@ void ASTrackerBot::Tick(float DeltaTime)
 		ForceDirection *= MovementForce;
 
 		MeshComponent->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
+	}
+
+	if (RollingSound) {
+		FVector RollingVelocity = GetVelocity();
+		FVector RollingVelocityDirection;
+		float RollingVelocityLength;
+		RollingVelocity.ToDirectionAndLength(RollingVelocityDirection, RollingVelocityLength);
+
+		RollingSound->VolumeMultiplier = FMath::GetMappedRangeValueClamped(RollingVolumeInputSpeed, RollingVolumeOutputLoudness, RollingVelocityLength);
 	}
 }
 
@@ -119,6 +140,8 @@ void ASTrackerBot::SelfDestruct()
 	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadiusInner, 12, FColor::Red, false, 2.f, 0, 3.f);
 	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadiusOuter, 12, FColor::Yellow, false, 2.f, 0, 3.f);
 
+	UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
+
 	//Get rid of actor
 	Destroy();
 }
@@ -149,8 +172,9 @@ void ASTrackerBot::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 		ASCharacter* PlayerPawn = Cast<ASCharacter>(OtherActor);
 		if (PlayerPawn) {
 			//Start self-destruction sequence
-			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, 0.5f, true, 0.0f);
+			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
 			bStartedSelfDestruct = true;
+			UGameplayStatics::SpawnSoundAttached(SelfDestructSound, RootComponent);
 		}
 	}
 }

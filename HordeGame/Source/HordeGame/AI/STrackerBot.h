@@ -7,6 +7,7 @@
 #include "STrackerBot.generated.h"
 
 class USHealthComponent;
+class USoundCue;
 class USphereComponent;
 
 UCLASS()
@@ -52,6 +53,9 @@ protected:
 	FVector NextPathPoint;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Damage")
+	float SelfDamageInterval;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Damage")
 	float BaseDamage;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Damage")
@@ -72,9 +76,32 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Tracking")
 	bool bUseVelocityChange;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	float RollingVolumeMinSpeed;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	float RollingVolumeMaxSpeed;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	float RollingVolumeMinLoudness;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	float RollingVolumeMaxLoudness;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	USoundCue* RollingSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	USoundCue* SelfDestructSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
+	USoundCue* ExplodeSound;
+
 	bool bStartedSelfDestruct;
 	bool bExploded;
 	FTimerHandle TimerHandle_SelfDamage;
+	FVector2D RollingVolumeInputSpeed;
+	FVector2D RollingVolumeOutputLoudness;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;	
