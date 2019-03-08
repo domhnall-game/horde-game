@@ -100,6 +100,7 @@ protected:
 	bool bStartedSelfDestruct;
 	bool bExploded;
 	FTimerHandle TimerHandle_SelfDamage;
+	FTimerHandle TimerHandle_ProcessAI;
 	FVector2D RollingVolumeInputSpeed;
 	FVector2D RollingVolumeOutputLoudness;
 public:	
