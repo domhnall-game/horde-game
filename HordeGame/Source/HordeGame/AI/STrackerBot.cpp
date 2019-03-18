@@ -37,20 +37,22 @@ ASTrackerBot::ASTrackerBot()
 	HealthComponent = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComponent"));
 
 	bUseVelocityChange = true;
-	MovementForce = 500;
-	RequiredDistanceToTarget = 100;
+	MovementForce = 500.f;
+	RequiredDistanceToTarget = 100.f;
 
-	RollingVolumeMinSpeed = 10;
-	RollingVolumeMaxSpeed = 1000;
-	RollingVolumeMinLoudness = 0.1;
-	RollingVolumeMaxLoudness = 2;
+	RollingVolumeMinSpeed = 10.f;
+	RollingVolumeMaxSpeed = 1000.f;
+	RollingVolumeMinLoudness = 0.1f;
+	RollingVolumeMaxLoudness = 2.f;
 
-	BaseDamage = 50;
-	ExplosionRadiusInner = 100;
-	ExplosionRadiusOuter = 200;
+	BaseDamage = 50.f;
+	ExplosionRadiusInner = 100.f;
+	ExplosionRadiusOuter = 200.f;
 	DamageFalloff = 0.5f;
 	SelfDamageInterval = 0.5f;
 	bExploded = false;
+
+	AIProcessingInterval = 0.1f;
 }
 
 // Called when the game starts or when spawned
@@ -75,34 +77,14 @@ void ASTrackerBot::BeginPlay()
 	NextPathPoint = GetNextPathPoint();
 
 	UGameplayStatics::SpawnSoundAttached(RollingSound, RootComponent);
+
+	GetWorldTimerManager().SetTimer(TimerHandle_ProcessAI, this, &ASTrackerBot::ProcessAI, AIProcessingInterval, true, 0.0f);
 }
 
 // Called every frame
 void ASTrackerBot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	float DistanceToTarget = (GetActorLocation() - NextPathPoint).Size();
-
-	if (DistanceToTarget <= RequiredDistanceToTarget) {
-		NextPathPoint = GetNextPathPoint();
-	} else {
-		//Keep moving towards target
-		FVector ForceDirection = NextPathPoint - GetActorLocation();
-		ForceDirection.Normalize();
-		ForceDirection *= MovementForce;
-
-		MeshComponent->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
-	}
-
-	if (RollingSound) {
-		FVector RollingVelocity = GetVelocity();
-		FVector RollingVelocityDirection;
-		float RollingVelocityLength;
-		RollingVelocity.ToDirectionAndLength(RollingVelocityDirection, RollingVelocityLength);
-
-		RollingSound->VolumeMultiplier = FMath::GetMappedRangeValueClamped(RollingVolumeInputSpeed, RollingVolumeOutputLoudness, RollingVelocityLength);
-	}
 }
 
 FVector ASTrackerBot::GetNextPathPoint()
@@ -163,6 +145,31 @@ void ASTrackerBot::OnHealthChanged(USHealthComponent* HealthComp, float Health, 
 	//Explode on death
 	if (Health <= 0.f) {
 		SelfDestruct();
+	}
+}
+
+void ASTrackerBot::ProcessAI()
+{
+	//float DistanceToTarget = (GetActorLocation() - GetNextPathPoint()).Size();
+
+	//if (DistanceToTarget <= RequiredDistanceToTarget) {
+	//	NextPathPoint = GetNextPathPoint();
+	//} else {
+		//Keep moving towards target
+		FVector ForceDirection = GetNextPathPoint() - GetActorLocation();
+		ForceDirection.Normalize();
+		ForceDirection *= (MovementForce / GetWorld()->GetDeltaSeconds()*AIProcessingInterval);
+
+		MeshComponent->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
+	//}
+
+	if (RollingSound) {
+		FVector RollingVelocity = GetVelocity();
+		FVector RollingVelocityDirection;
+		float RollingVelocityLength;
+		RollingVelocity.ToDirectionAndLength(RollingVelocityDirection, RollingVelocityLength);
+
+		RollingSound->VolumeMultiplier = FMath::GetMappedRangeValueClamped(RollingVolumeInputSpeed, RollingVolumeOutputLoudness, RollingVelocityLength);
 	}
 }
 

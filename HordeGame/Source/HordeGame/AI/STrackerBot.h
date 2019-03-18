@@ -30,6 +30,9 @@ protected:
 	void DamageSelf();
 
 	UFUNCTION()
+	void ProcessAI();
+
+	UFUNCTION()
 	void OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
 	UFUNCTION()
@@ -96,6 +99,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
 	USoundCue* ExplodeSound;
+
+	float AIProcessingInterval;
 
 	bool bStartedSelfDestruct;
 	bool bExploded;
