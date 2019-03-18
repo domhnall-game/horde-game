@@ -6,6 +6,7 @@
 #include "GameFramework/Pawn.h"
 #include "STrackerBot.generated.h"
 
+class ASCharacter;
 class USHealthComponent;
 class USoundCue;
 class USphereComponent;
@@ -25,6 +26,7 @@ protected:
 
 	FVector GetNextPathPoint();
 	void SelfDestruct();
+	void ChooseTarget();
 
 	UFUNCTION()
 	void DamageSelf();
@@ -52,8 +54,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FX")
 	UParticleSystem* ExplosionEffect;
-
-	FVector NextPathPoint;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Damage")
 	float SelfDamageInterval;
@@ -99,6 +99,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Sounds")
 	USoundCue* ExplodeSound;
+
+	ASCharacter* Target;
 
 	float AIProcessingInterval;
 

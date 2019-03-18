@@ -60,25 +60,26 @@ void ASTrackerBot::BeginPlay()
 {
 	Super::BeginPlay();
 
-	//Get the dynamic material instance
-	DynamicMaterialInst = MeshComponent->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComponent->GetMaterial(0));
-	if (DynamicMaterialInst) {
-		DynamicMaterialInst->SetScalarParameterValue("DefaultHealth", HealthComponent->GetDefaultHealth());
-		DynamicMaterialInst->SetScalarParameterValue("CurrentHealth", HealthComponent->GetCurrentHealth());
+	if (Role == ROLE_Authority) {
+		//Get the dynamic material instance
+		DynamicMaterialInst = MeshComponent->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComponent->GetMaterial(0));
+		if (DynamicMaterialInst) {
+			DynamicMaterialInst->SetScalarParameterValue("DefaultHealth", HealthComponent->GetDefaultHealth());
+			DynamicMaterialInst->SetScalarParameterValue("CurrentHealth", HealthComponent->GetCurrentHealth());
+		}
+
+		HealthComponent->OnHealthChanged.AddDynamic(this, &ASTrackerBot::OnHealthChanged);
+		SphereComponent->SetSphereRadius(ExplosionRadiusOuter);
+		SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ASTrackerBot::OnOverlapBegin);
+
+		RollingVolumeInputSpeed = FVector2D(RollingVolumeMinSpeed, RollingVolumeMaxSpeed);
+		RollingVolumeOutputLoudness = FVector2D(RollingVolumeMinLoudness, RollingVolumeMaxLoudness);
+
+		UGameplayStatics::SpawnSoundAttached(RollingSound, RootComponent);
+
+		ChooseTarget();
+		GetWorldTimerManager().SetTimer(TimerHandle_ProcessAI, this, &ASTrackerBot::ProcessAI, AIProcessingInterval, true, 0.f);
 	}
-
-	HealthComponent->OnHealthChanged.AddDynamic(this, &ASTrackerBot::OnHealthChanged);
-	SphereComponent->SetSphereRadius(ExplosionRadiusOuter);
-	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ASTrackerBot::OnOverlapBegin);
-
-	RollingVolumeInputSpeed = FVector2D(RollingVolumeMinSpeed, RollingVolumeMaxSpeed);
-	RollingVolumeOutputLoudness = FVector2D(RollingVolumeMinLoudness, RollingVolumeMaxLoudness);
-	
-	NextPathPoint = GetNextPathPoint();
-
-	UGameplayStatics::SpawnSoundAttached(RollingSound, RootComponent);
-
-	GetWorldTimerManager().SetTimer(TimerHandle_ProcessAI, this, &ASTrackerBot::ProcessAI, AIProcessingInterval, true, 0.0f);
 }
 
 // Called every frame
@@ -90,9 +91,9 @@ void ASTrackerBot::Tick(float DeltaTime)
 FVector ASTrackerBot::GetNextPathPoint()
 {
 	//Hack to get player location
-	ACharacter* PlayerPawn = UGameplayStatics::GetPlayerCharacter(this, 0);
+	//ACharacter* PlayerPawn = UGameplayStatics::GetPlayerCharacter(this, 0);
 
-	UNavigationPath* NavPath = UNavigationSystem::FindPathToActorSynchronously(this, GetActorLocation(), PlayerPawn);
+	UNavigationPath* NavPath = UNavigationSystem::FindPathToActorSynchronously(this, GetActorLocation(), Target);
 	if (NavPath->PathPoints.Num() > 1) {
 		//Return next point in path
 		return NavPath->PathPoints[1];
@@ -128,6 +129,17 @@ void ASTrackerBot::SelfDestruct()
 	Destroy();
 }
 
+void ASTrackerBot::ChooseTarget()
+{
+	if (Role == ROLE_Authority) {
+		TArray<AActor*> AllCharacters;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASCharacter::StaticClass(), AllCharacters);
+		UE_LOG(LogTemp, Warning, TEXT("%d characters"), AllCharacters.Num());
+		Target = Cast<ASCharacter>(AllCharacters[FMath::RandHelper(AllCharacters.Num())]);
+		UE_LOG(LogTemp, Warning, TEXT("Target is %s"), *Target->GetName());
+	}
+}
+
 void ASTrackerBot::DamageSelf()
 {
 	UGameplayStatics::ApplyDamage(this, 20, GetInstigatorController(), this, nullptr);
@@ -150,26 +162,21 @@ void ASTrackerBot::OnHealthChanged(USHealthComponent* HealthComp, float Health, 
 
 void ASTrackerBot::ProcessAI()
 {
-	//float DistanceToTarget = (GetActorLocation() - GetNextPathPoint()).Size();
-
-	//if (DistanceToTarget <= RequiredDistanceToTarget) {
-	//	NextPathPoint = GetNextPathPoint();
-	//} else {
-		//Keep moving towards target
+	if (Role == ROLE_Authority && Target) {
 		FVector ForceDirection = GetNextPathPoint() - GetActorLocation();
 		ForceDirection.Normalize();
 		ForceDirection *= (MovementForce / GetWorld()->GetDeltaSeconds()*AIProcessingInterval);
 
 		MeshComponent->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
-	//}
 
-	if (RollingSound) {
-		FVector RollingVelocity = GetVelocity();
-		FVector RollingVelocityDirection;
-		float RollingVelocityLength;
-		RollingVelocity.ToDirectionAndLength(RollingVelocityDirection, RollingVelocityLength);
+		if (RollingSound) {
+			FVector RollingVelocity = GetVelocity();
+			FVector RollingVelocityDirection;
+			float RollingVelocityLength;
+			RollingVelocity.ToDirectionAndLength(RollingVelocityDirection, RollingVelocityLength);
 
-		RollingSound->VolumeMultiplier = FMath::GetMappedRangeValueClamped(RollingVolumeInputSpeed, RollingVolumeOutputLoudness, RollingVelocityLength);
+			RollingSound->VolumeMultiplier = FMath::GetMappedRangeValueClamped(RollingVolumeInputSpeed, RollingVolumeOutputLoudness, RollingVelocityLength);
+		}
 	}
 }
 
