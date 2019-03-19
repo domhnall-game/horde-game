@@ -2,9 +2,12 @@
 
 #include "SPickupActor.h"
 
+#include "SPowerupActor.h"
 
 #include "Components/DecalComponent.h"
 #include "Components/SphereComponent.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 
 // Sets default values
 ASPickupActor::ASPickupActor()
@@ -26,10 +29,30 @@ ASPickupActor::ASPickupActor()
 void ASPickupActor::BeginPlay()
 {
 	Super::BeginPlay();
-
+	Respawn();
 }
 
-void ASPickupActor::NotifyActorBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ASPickupActor::Respawn()
+{
+	if (PowerupClass == nullptr) {
+		UE_LOG(LogTemp, Warning, TEXT("PowerupClass not defined in Blueprint for %s"), *GetName());
+		return;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	PowerupInstance = GetWorld()->SpawnActor<ASPowerupActor>(PowerupClass, GetTransform());
+}
+
+void ASPickupActor::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
+
+	if (PowerupInstance) {
+		PowerupInstance->ActivatePowerup();
+		PowerupInstance = nullptr;
+
+		//Set timer to respawn pickup
+		GetWorldTimerManager().SetTimer(TimerHandle_RespawnTimer, this, &ASPickupActor::Respawn, CooldownDuration);
+	}
 }
