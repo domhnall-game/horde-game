@@ -15,6 +15,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "TimerManager.h"
+#include "Net/UnrealNetwork.h"
 #include "Engine/World.h"
 
 // Sets default values
@@ -60,22 +61,22 @@ void ASTrackerBot::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (Role == ROLE_Authority) {
-		//Get the dynamic material instance
-		DynamicMaterialInst = MeshComponent->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComponent->GetMaterial(0));
-		if (DynamicMaterialInst) {
-			DynamicMaterialInst->SetScalarParameterValue("DefaultHealth", HealthComponent->GetDefaultHealth());
-			DynamicMaterialInst->SetScalarParameterValue("CurrentHealth", HealthComponent->GetCurrentHealth());
-		}
+	//Get the dynamic material instance
+	DynamicMaterialInst = MeshComponent->CreateAndSetMaterialInstanceDynamicFromMaterial(0, MeshComponent->GetMaterial(0));
+	if (DynamicMaterialInst) {
+		DynamicMaterialInst->SetScalarParameterValue("DefaultHealth", HealthComponent->GetDefaultHealth());
+		DynamicMaterialInst->SetScalarParameterValue("CurrentHealth", HealthComponent->GetCurrentHealth());
+	}
 
+	RollingVolumeInputSpeed = FVector2D(RollingVolumeMinSpeed, RollingVolumeMaxSpeed);
+	RollingVolumeOutputLoudness = FVector2D(RollingVolumeMinLoudness, RollingVolumeMaxLoudness);
+
+	UGameplayStatics::SpawnSoundAttached(RollingSound, RootComponent);
+
+	if (Role == ROLE_Authority) {
 		HealthComponent->OnHealthChanged.AddDynamic(this, &ASTrackerBot::OnHealthChanged);
 		SphereComponent->SetSphereRadius(ExplosionRadiusOuter);
 		SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &ASTrackerBot::OnOverlapBegin);
-
-		RollingVolumeInputSpeed = FVector2D(RollingVolumeMinSpeed, RollingVolumeMaxSpeed);
-		RollingVolumeOutputLoudness = FVector2D(RollingVolumeMinLoudness, RollingVolumeMaxLoudness);
-
-		UGameplayStatics::SpawnSoundAttached(RollingSound, RootComponent);
 
 		ChooseTarget();
 		GetWorldTimerManager().SetTimer(TimerHandle_ProcessAI, this, &ASTrackerBot::ProcessAI, AIProcessingInterval, true, 0.f);
@@ -115,18 +116,26 @@ void ASTrackerBot::SelfDestruct()
 	if (ExplosionEffect) {
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
 	}
-
-	//Apply damage
-	TArray<AActor*> IgnoredActors;
-	IgnoredActors.Add(this);
-	UGameplayStatics::ApplyRadialDamageWithFalloff(this, BaseDamage, 20, GetActorLocation(), ExplosionRadiusInner, ExplosionRadiusOuter, DamageFalloff, nullptr, IgnoredActors, this, GetInstigatorController());
-	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadiusInner, 12, FColor::Red, false, 2.f, 0, 3.f);
-	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadiusOuter, 12, FColor::Yellow, false, 2.f, 0, 3.f);
-
 	UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
 
-	//Get rid of actor
-	Destroy();
+	MeshComponent->SetVisibility(false, true);
+	MeshComponent->SetSimulatePhysics(false);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetWorldTimerManager().ClearAllTimersForObject(this);
+	RollingSound->VolumeMultiplier = 0.f;
+
+	//Apply damage
+	if (Role == ROLE_Authority) {
+		TArray<AActor*> IgnoredActors;
+		IgnoredActors.Add(this);
+		UGameplayStatics::ApplyRadialDamageWithFalloff(this, BaseDamage, 20, GetActorLocation(), ExplosionRadiusInner, ExplosionRadiusOuter, DamageFalloff, nullptr, IgnoredActors, this, GetInstigatorController());
+		//DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadiusInner, 12, FColor::Red, false, 2.f, 0, 3.f);
+		//DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadiusOuter, 12, FColor::Yellow, false, 2.f, 0, 3.f);
+
+		//Get rid of actor
+		//Destroy();
+		SetLifeSpan(2.0f);
+	}
 }
 
 void ASTrackerBot::ChooseTarget()
@@ -134,9 +143,9 @@ void ASTrackerBot::ChooseTarget()
 	if (Role == ROLE_Authority) {
 		TArray<AActor*> AllCharacters;
 		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ASCharacter::StaticClass(), AllCharacters);
-		UE_LOG(LogTemp, Warning, TEXT("%d characters"), AllCharacters.Num());
-		Target = Cast<ASCharacter>(AllCharacters[FMath::RandHelper(AllCharacters.Num())]);
-		UE_LOG(LogTemp, Warning, TEXT("Target is %s"), *Target->GetName());
+		if (AllCharacters.Num() > 0) {
+			Target = Cast<ASCharacter>(AllCharacters[FMath::RandHelper(AllCharacters.Num())]);
+		}
 	}
 }
 
@@ -145,10 +154,28 @@ void ASTrackerBot::DamageSelf()
 	UGameplayStatics::ApplyDamage(this, 20, GetInstigatorController(), this, nullptr);
 }
 
+void ASTrackerBot::ProcessAI()
+{
+	if (Role == ROLE_Authority && Target) {
+		FVector ForceDirection = GetNextPathPoint() - GetActorLocation();
+		ForceDirection.Normalize();
+		ForceDirection *= (MovementForce / GetWorld()->GetDeltaSeconds()*AIProcessingInterval);
+
+		MeshComponent->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
+	}
+
+	if (RollingSound) {
+		FVector RollingVelocity = GetVelocity();
+		FVector RollingVelocityDirection;
+		float RollingVelocityLength;
+		RollingVelocity.ToDirectionAndLength(RollingVelocityDirection, RollingVelocityLength);
+
+		RollingSound->VolumeMultiplier = FMath::GetMappedRangeValueClamped(RollingVolumeInputSpeed, RollingVolumeOutputLoudness, RollingVelocityLength);
+	}
+}
+
 void ASTrackerBot::OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
-	UE_LOG(LogTemp, Warning, TEXT("%s: %f HP"), *GetName(), Health);
-
 	//Pulse material on hit
 	if (DynamicMaterialInst) {
 		DynamicMaterialInst->SetScalarParameterValue("CurrentHealth", Health);
@@ -160,35 +187,28 @@ void ASTrackerBot::OnHealthChanged(USHealthComponent* HealthComp, float Health, 
 	}
 }
 
-void ASTrackerBot::ProcessAI()
-{
-	if (Role == ROLE_Authority && Target) {
-		FVector ForceDirection = GetNextPathPoint() - GetActorLocation();
-		ForceDirection.Normalize();
-		ForceDirection *= (MovementForce / GetWorld()->GetDeltaSeconds()*AIProcessingInterval);
-
-		MeshComponent->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
-
-		if (RollingSound) {
-			FVector RollingVelocity = GetVelocity();
-			FVector RollingVelocityDirection;
-			float RollingVelocityLength;
-			RollingVelocity.ToDirectionAndLength(RollingVelocityDirection, RollingVelocityLength);
-
-			RollingSound->VolumeMultiplier = FMath::GetMappedRangeValueClamped(RollingVolumeInputSpeed, RollingVolumeOutputLoudness, RollingVelocityLength);
-		}
-	}
-}
-
 void ASTrackerBot::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (!bStartedSelfDestruct) {
 		ASCharacter* PlayerPawn = Cast<ASCharacter>(OtherActor);
 		if (PlayerPawn) {
-			//Start self-destruction sequence
-			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
 			bStartedSelfDestruct = true;
 			UGameplayStatics::SpawnSoundAttached(SelfDestructSound, RootComponent);
+			if (Role == ROLE_Authority) {
+				GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
+			}
 		}
 	}
+}
+
+void ASTrackerBot::OnRep_StartedSelfDestruct()
+{
+	UGameplayStatics::SpawnSoundAttached(SelfDestructSound, RootComponent);
+}
+
+void ASTrackerBot::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASTrackerBot, bStartedSelfDestruct);
 }

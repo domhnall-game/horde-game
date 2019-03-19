@@ -35,6 +35,9 @@ protected:
 	void ProcessAI();
 
 	UFUNCTION()
+	void OnRep_StartedSelfDestruct();
+
+	UFUNCTION()
 	void OnHealthChanged(USHealthComponent* HealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser);
 
 	UFUNCTION()
@@ -104,6 +107,7 @@ protected:
 
 	float AIProcessingInterval;
 
+	UPROPERTY(ReplicatedUsing=OnRep_StartedSelfDestruct)
 	bool bStartedSelfDestruct;
 	bool bExploded;
 	FTimerHandle TimerHandle_SelfDamage;
