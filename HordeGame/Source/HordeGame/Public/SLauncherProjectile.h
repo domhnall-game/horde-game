@@ -21,6 +21,9 @@ protected:
 	UFUNCTION()
 	void Explode();
 
+	UFUNCTION()
+	void OnRep_IsExploded();
+
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 	UStaticMeshComponent* MeshComponent;
 
@@ -40,6 +43,8 @@ protected:
 
 	FTimerHandle TimerHandle_ExplosionDelay;
 
+	UPROPERTY(ReplicatedUsing = OnRep_IsExploded)
+	bool bIsExploded;
 public:
 	ASLauncherProjectile();
 

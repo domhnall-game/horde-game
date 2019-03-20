@@ -22,6 +22,9 @@ protected:
 	UFUNCTION()
 	void OnTickPowerup();
 
+	UFUNCTION()
+	void OnRep_PowerupActive();
+
 	/* Time between powerup ticks */
 	UPROPERTY(EditDefaultsOnly, Category = "Powerups")
 	float PowerupInterval;
@@ -33,6 +36,13 @@ protected:
 	int32 TicksProcessed;
 
 	FTimerHandle TimerHandle_PowerupTick;
+
+	/* Keeps the state of the powerup */
+	UPROPERTY(ReplicatedUsing=OnRep_PowerupActive)
+	bool bIsPowerupActive;
+
+	UPROPERTY(BlueprintReadOnly)
+	AActor* ActiveForActor;
 public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Powerups")
 	void OnActivated();
@@ -40,6 +50,8 @@ public:
 	void OnExpired();
 	UFUNCTION(BlueprintImplementableEvent, Category = "Powerups")
 	void OnPowerupTicked();
+	UFUNCTION(BlueprintImplementableEvent, Category = "Powerups")
+	void OnPowerupStateChanged(bool bNewIsActive);
 
-	void ActivatePowerup();
+	void ActivatePowerup(AActor* OverlappingActor);
 };
