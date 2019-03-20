@@ -58,6 +58,15 @@ void USHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(USHealthComponent, Health);
 }
 
+void USHealthComponent::Heal(float HealAmount)
+{
+	if (Health > 0.f && HealAmount > 0.f) {
+		Health = FMath::Clamp(Health + HealAmount, 0.f, DefaultHealth);
+	}
+
+	OnHealthChanged.Broadcast(this, Health, -HealAmount, nullptr, nullptr, nullptr);
+}
+
 // Called every frame
 /*
 void USHealthComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
