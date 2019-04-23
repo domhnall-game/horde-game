@@ -2,6 +2,7 @@
 
 #include "SGameMode.h"
 
+#include "SGameState.h"
 #include "SHealthComponent.h"
 
 #include "TimerManager.h"
@@ -9,6 +10,8 @@
 
 ASGameMode::ASGameMode()
 {
+	GameStateClass = ASGameState::StaticClass();
+
 	WaveCount = 0;
 	TimeBetweenWaves = 2.f;
 
@@ -105,6 +108,14 @@ void ASGameMode::GameOver()
 	//@TODO: Finish up game and present stats to players
 
 	UE_LOG(LogTemp, Warning, TEXT("GAME OVER: All players dead"));
+}
+
+void ASGameMode::SetWaveState(EWaveState NewState)
+{
+	ASGameState* GameState = GetGameState<ASGameState>();
+	if (ensureAlways(GameState)) {
+		GameState->WaveState = NewState;
+	}
 }
 
 void ASGameMode::PrepareForNextWave()
