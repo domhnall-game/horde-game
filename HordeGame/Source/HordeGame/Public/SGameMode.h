@@ -39,6 +39,8 @@ protected:
 	//Set timer for next wave start
 	void PrepareForNextWave();
 	void CheckWaveState();
+	void CheckAnyPlayerAlive();
+	void GameOver();
 
 public:
 	ASGameMode();
