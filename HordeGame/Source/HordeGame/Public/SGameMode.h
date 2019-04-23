@@ -23,6 +23,7 @@ protected:
 	float TimeBetweenWaves;
 
 	FTimerHandle TimerHandle_BotSpawner;
+	FTimerHandle TimerHandle_NextWaveStart;
 		
 protected:
 	//Hook for BP to spawn a single bot
@@ -37,8 +38,10 @@ protected:
 	void EndWave();
 	//Set timer for next wave start
 	void PrepareForNextWave();
+	void CheckWaveState();
 
 public:
 	ASGameMode();
 	virtual void StartPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 };

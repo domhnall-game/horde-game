@@ -44,6 +44,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Events")
 	FOnHealthChangedSignature OnHealthChanged;
 
-	float GetDefaultHealth() { return DefaultHealth; }
-	float GetCurrentHealth() { return Health; }
+	float GetDefaultHealth() const { return DefaultHealth; }
+	float GetCurrentHealth() const { return Health; }
 };
