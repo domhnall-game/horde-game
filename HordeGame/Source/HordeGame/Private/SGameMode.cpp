@@ -54,6 +54,7 @@ void ASGameMode::EndWave()
 {
 	GetWorldTimerManager().ClearTimer(TimerHandle_BotSpawner);
 	//PrepareForNextWave();
+	SetWaveState(EWaveState::WaitingToComplete);
 }
 
 void ASGameMode::CheckWaveState()
@@ -108,17 +109,19 @@ void ASGameMode::GameOver()
 	//@TODO: Finish up game and present stats to players
 
 	UE_LOG(LogTemp, Warning, TEXT("GAME OVER: All players dead"));
+	SetWaveState(EWaveState::GameOver);
+}
+
+void ASGameMode::PrepareForNextWave()
+{
+	GetWorldTimerManager().SetTimer(TimerHandle_NextWaveStart, this, &ASGameMode::StartWave, TimeBetweenWaves, false);
+	SetWaveState(EWaveState::WaitingToStart);
 }
 
 void ASGameMode::SetWaveState(EWaveState NewState)
 {
 	ASGameState* GameState = GetGameState<ASGameState>();
 	if (ensureAlways(GameState)) {
-		GameState->WaveState = NewState;
+		GameState->SetWaveState(NewState);
 	}
-}
-
-void ASGameMode::PrepareForNextWave()
-{
-	GetWorldTimerManager().SetTimer(TimerHandle_NextWaveStart, this, &ASGameMode::StartWave, TimeBetweenWaves, false);
 }
