@@ -3,6 +3,7 @@
 #include "SGameMode.h"
 
 #include "SGameState.h"
+#include "SPlayerState.h"
 #include "SHealthComponent.h"
 
 #include "TimerManager.h"
@@ -10,6 +11,7 @@
 
 ASGameMode::ASGameMode()
 {
+	PlayerStateClass = ASPlayerState::StaticClass();
 	GameStateClass = ASGameState::StaticClass();
 
 	WaveCount = 0;
